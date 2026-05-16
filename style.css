@@ -81,7 +81,7 @@ header .subtitle { font-size: 0.7rem; opacity: 0.5; letter-spacing: 0.12em; text
 
 /* ── KANBAN BOARD ── */
 .kanban-wrapper { display: flex; overflow-x: auto; gap: 14px; padding: 20px 28px 28px; min-height: calc(100vh - 64px); align-items: flex-start; }
-.kanban-col { flex: 0 0 280px; width: 280px; background: var(--cream); border-radius: 10px; display: flex; flex-direction: column; max-height: calc(100vh - 104px); overflow: hidden; }
+.kanban-col { flex: 0 0 280px; width: 280px; background: var(--cream); border-radius: 10px; display: flex; flex-direction: column; height: calc(100vh - 104px); overflow: hidden; }
 .kanban-col-header { padding: 11px 14px 10px; border-radius: 10px 10px 0 0; display: flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 2; }
 .kanban-col-header h2 { font-family: 'Fraunces', serif; font-size: 0.9rem; font-weight: 600; color: white; letter-spacing: 0.01em; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kanban-col-count { font-family: 'DM Mono', monospace; font-size: 0.65rem; background: rgba(255,255,255,0.22); color: white; border-radius: 20px; padding: 2px 8px; letter-spacing: 0.04em; white-space: nowrap; }
