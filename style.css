@@ -123,7 +123,8 @@ header .subtitle { font-size: 0.7rem; opacity: 0.5; letter-spacing: 0.12em; text
 .card-date-val.empty { color: #ccc; }
 
 /* ── CARD OPMERKINGEN PREVIEW ── */
-.card-opm { font-size: 0.65rem; color: #aaa; line-height: 1.4; margin-top: 4px; border-top: 1px solid #f0ede7; padding-top: 6px; word-break: break-word; }
+.card-opm { font-size: 0.65rem; color: #aaa; line-height: 1.4; margin-top: 4px; border-top: 1px solid #f0ede7; padding-top: 6px; word-break: break-word; min-height: 34px; }
+.card-opm.card-opm-empty { border-top-color: transparent; }
 
 /* ── TABLE (from old project, for settings.html compatibility) ── */
 .toolbar { padding: 12px 32px; background: var(--cream); border-bottom: 1px solid var(--rule); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }

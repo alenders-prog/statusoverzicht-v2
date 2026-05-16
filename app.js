@@ -359,18 +359,25 @@ function renderCard(row, phase) {
   });
   body.appendChild(dots);
 
-  // Key dates for this phase
+  // Key dates for this phase — always render 3 slots for uniform card height
   const dateFields = PHASE_DATE_FIELDS[phase.id] || [];
-  if (dateFields.length > 0) {
-    const datesWrap = document.createElement('div');
-    datesWrap.className = 'card-dates';
-    dateFields.forEach(field => {
+  const paddedFields = dateFields.slice();
+  while (paddedFields.length < 3) paddedFields.push(null);
+
+  const datesWrap = document.createElement('div');
+  datesWrap.className = 'card-dates';
+  paddedFields.forEach(field => {
+    const dateRow = document.createElement('div');
+    dateRow.className = 'card-date-row';
+
+    if (!field) {
+      dateRow.style.visibility = 'hidden';
+      dateRow.appendChild(document.createElement('span'));
+      dateRow.appendChild(document.createElement('span'));
+    } else {
       const val = row[field.key];
       const formatted = formatDate(val);
-      const overdue = val && val !== 'n.v.t.' && isOverdue(val);
-
-      const dateRow = document.createElement('div');
-      dateRow.className = 'card-date-row';
+      const overdue = hasValue(val) && isOverdue(val);
 
       const lbl = document.createElement('span');
       lbl.className = 'card-date-label';
@@ -382,18 +389,17 @@ function renderCard(row, phase) {
 
       dateRow.appendChild(lbl);
       dateRow.appendChild(valEl);
-      datesWrap.appendChild(dateRow);
-    });
-    body.appendChild(datesWrap);
-  }
+    }
+    datesWrap.appendChild(dateRow);
+  });
+  body.appendChild(datesWrap);
 
-  // Opmerkingen preview
-  if (row.opmerkingen && row.opmerkingen.trim()) {
-    const opm = document.createElement('div');
-    opm.className = 'card-opm';
-    opm.textContent = row.opmerkingen.trim().slice(0, 80);
-    body.appendChild(opm);
-  }
+  // Opmerkingen preview — always rendered for uniform card height
+  const opm = document.createElement('div');
+  const opmText = row.opmerkingen && row.opmerkingen.trim();
+  opm.className = 'card-opm' + (opmText ? '' : ' card-opm-empty');
+  opm.textContent = opmText ? opmText.slice(0, 80) : '';
+  body.appendChild(opm);
 
   card.appendChild(body);
 
