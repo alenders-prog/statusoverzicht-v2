@@ -21,15 +21,17 @@ const PROGRESS_PHASES = ['ph1', 'pha', 'ph2', 'ph3', 'ph4', 'ph5'];
 let rows = [], alarmSettings = {};
 
 // ── PHASE DETECTION ──
+function hasValue(v) { return !!v && v !== 'n.v.t.'; }
+
 function getPhase(row) {
-  if (row.zoza_afgerond)                                                                    return 'afgerond';
-  if (row.beeindigd || row.vergoeding_aangevraagd || row.vergoeding_ontvangen)             return 'ph5';
-  if (row.inschrijving_ontvangen || row.verstuurd_gemeente)                                return 'ph4';
-  if (row.akkoord_klanter || row.verstuurd_klanten || row.beschikking ||
-      row.rechtbank || row.belafspraak || row.docs_verstuurd)                              return 'ph3';
-  if (row.akkoord_klanten || row.naar_klanten || row.antwoord || row.ter_controle)        return 'ph2';
-  if (row.concepten_akkoord || row.reactie_ontvangen || row.datum_afspraak || row.actie_voor) return 'pha';
-  if (row.bevestigd || row.aangevraagd)                                                    return 'ph1';
+  if (hasValue(row.zoza_afgerond))                                                                              return 'afgerond';
+  if (hasValue(row.beeindigd) || hasValue(row.vergoeding_aangevraagd) || hasValue(row.vergoeding_ontvangen))   return 'ph5';
+  if (hasValue(row.inschrijving_ontvangen) || hasValue(row.verstuurd_gemeente))                                 return 'ph4';
+  if (hasValue(row.akkoord_klanter) || hasValue(row.verstuurd_klanten) || hasValue(row.beschikking) ||
+      hasValue(row.rechtbank) || hasValue(row.belafspraak) || hasValue(row.docs_verstuurd))                     return 'ph3';
+  if (hasValue(row.akkoord_klanten) || hasValue(row.naar_klanten) || hasValue(row.antwoord) || hasValue(row.ter_controle)) return 'ph2';
+  if (hasValue(row.concepten_akkoord) || hasValue(row.reactie_ontvangen) || hasValue(row.datum_afspraak) || hasValue(row.actie_voor)) return 'pha';
+  if (hasValue(row.bevestigd) || hasValue(row.aangevraagd))                                                    return 'ph1';
   return 'nieuw';
 }
 
@@ -211,7 +213,7 @@ function countAlarms(row) {
 
 // ── DATE HELPERS ──
 function formatDate(val) {
-  if (!val || val === 'n.v.t.') return val === 'n.v.t.' ? 'n.v.t.' : '—';
+  if (!val || val === 'n.v.t.') return '—';
   const d = new Date(val);
   if (isNaN(d)) return val;
   return d.toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -375,7 +377,7 @@ function renderCard(row, phase) {
       lbl.textContent = field.label;
 
       const valEl = document.createElement('span');
-      valEl.className = 'card-date-val' + (overdue ? ' overdue' : '') + (!val || val === '' ? ' empty' : '');
+      valEl.className = 'card-date-val' + (overdue ? ' overdue' : '') + (!hasValue(val) ? ' empty' : '');
       valEl.textContent = formatted;
 
       dateRow.appendChild(lbl);
