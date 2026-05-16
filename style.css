@@ -91,12 +91,12 @@ header .subtitle { font-size: 0.7rem; opacity: 0.5; letter-spacing: 0.12em; text
 .kanban-empty { font-size: 0.68rem; color: #aaa; text-align: center; padding: 20px 12px; letter-spacing: 0.04em; }
 
 /* ── CARD ── */
-.card { background: white; border: 1px solid var(--rule); border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); cursor: pointer; transition: box-shadow 0.18s, transform 0.18s; position: relative; overflow: hidden; }
+.card { background: white; border: 1px solid var(--rule); border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); cursor: pointer; transition: box-shadow 0.18s, transform 0.18s; position: relative; overflow: hidden; height: 200px; display: flex; flex-direction: column; }
 .card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.12); transform: translateY(-2px); }
-.card-top-border { height: 4px; width: 100%; }
-.card-body { padding: 10px 12px 10px; }
-.card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; margin-bottom: 7px; }
-.card-name { font-family: 'Fraunces', serif; font-size: 0.97rem; font-weight: 600; color: var(--ink); line-height: 1.25; word-break: break-word; }
+.card-top-border { height: 4px; width: 100%; flex-shrink: 0; }
+.card-body { padding: 10px 12px 10px; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; margin-bottom: 7px; flex-shrink: 0; }
+.card-name { font-family: 'Fraunces', serif; font-size: 0.97rem; font-weight: 600; color: var(--ink); line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .card-badges { display: flex; align-items: center; gap: 5px; flex-shrink: 0; margin-top: 1px; }
 
 /* ── ALARM BADGE ── */
@@ -110,12 +110,12 @@ header .subtitle { font-size: 0.7rem; opacity: 0.5; letter-spacing: 0.12em; text
 .flag-btn:hover { filter: brightness(0.9); }
 
 /* ── PROGRESS DOTS ── */
-.card-dots { display: flex; gap: 4px; align-items: center; margin-bottom: 9px; }
+.card-dots { display: flex; gap: 4px; align-items: center; margin-bottom: 9px; flex-shrink: 0; }
 .dot { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid #ccc; background: transparent; flex-shrink: 0; }
 .dot.reached { border-color: transparent; }
 
 /* ── CARD DATES ── */
-.card-dates { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
+.card-dates { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; flex-shrink: 0; }
 .card-date-row { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; font-size: 0.66rem; }
 .card-date-label { color: #888; letter-spacing: 0.04em; white-space: nowrap; }
 .card-date-val { font-family: 'DM Mono', monospace; color: var(--ink); white-space: nowrap; }
@@ -123,7 +123,7 @@ header .subtitle { font-size: 0.7rem; opacity: 0.5; letter-spacing: 0.12em; text
 .card-date-val.empty { color: #ccc; }
 
 /* ── CARD OPMERKINGEN PREVIEW ── */
-.card-opm { font-size: 0.65rem; color: #aaa; line-height: 1.4; margin-top: 4px; border-top: 1px solid #f0ede7; padding-top: 6px; word-break: break-word; min-height: 34px; }
+.card-opm { font-size: 0.65rem; color: #aaa; line-height: 1.4; margin-top: 4px; border-top: 1px solid #f0ede7; padding-top: 6px; word-break: break-word; flex: 1; min-height: 0; overflow: hidden; }
 .card-opm.card-opm-empty { border-top-color: transparent; }
 
 /* ── TABLE (from old project, for settings.html compatibility) ── */
