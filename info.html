@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gegevens</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --ink: #0f0e0c;
+    --paper: #f5f2ec;
+    --cream: #ede9e0;
+    --rule: #ccc9bf;
+    --accent: #c8390a;
+    --green: #1a6e4a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Mono', monospace; background: var(--paper); color: var(--ink); min-height: 100vh; }
+
+  header { background: var(--ink); color: var(--paper); padding: 16px 32px; display: flex; align-items: center; gap: 20px; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+  .back-btn { font-family: 'DM Mono', monospace; font-size: 0.72rem; padding: 6px 14px; border: 1.5px solid rgba(255,255,255,0.3); border-radius: 3px; color: var(--paper); background: transparent; cursor: pointer; text-decoration: none; letter-spacing: 0.06em; transition: all 0.15s; }
+  .back-btn:hover { background: rgba(255,255,255,0.1); }
+  header h1 { font-family: 'Fraunces', serif; font-size: 1.4rem; font-weight: 600; }
+  .klant-name { font-size: 0.72rem; opacity: 0.55; margin-top: 2px; }
+  .sync { font-size: 0.65rem; opacity: 0.4; margin-left: auto; letter-spacing: 0.05em; }
+  .sync.saving { opacity: 1; color: #6ecfa0; }
+  .sync.error { opacity: 1; color: var(--accent); }
+
+  main { max-width: 860px; margin: 0 auto; padding: 36px 24px; display: none; }
+
+  .section { margin-bottom: 44px; }
+  .section-title { font-family: 'Fraunces', serif; font-size: 0.95rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; padding-bottom: 8px; border-bottom: 2px solid var(--ink); margin-bottom: 0; }
+
+  .field-table { width: 100%; border-collapse: collapse; }
+  .field-table thead th { font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 8px 12px; background: var(--cream); color: #888; border-bottom: 1px solid var(--rule); font-weight: 500; }
+  .field-table thead th:first-child { text-align: left; }
+  .field-table thead th:not(:first-child) { text-align: center; width: 100px; }
+  .field-table tbody tr { border-bottom: 1px solid var(--rule); transition: background 0.1s; }
+  .field-table tbody tr:hover { background: #faf8f4; }
+  .field-table tbody td { padding: 9px 12px; font-size: 0.73rem; }
+  .field-table tbody td:not(:first-child) { text-align: center; }
+
+  .toggle { width: 38px; height: 28px; border: 1.5px solid var(--rule); border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 0.78rem; cursor: pointer; font-weight: 500; transition: all 0.15s; background: white; color: #bbb; }
+  .toggle.on { background: var(--green); border-color: var(--green); color: white; }
+  .toggle:hover { filter: brightness(0.94); }
+  .rechtbank-table .toggle.on { background: #d4771a; border-color: #d4771a; }
+
+  #loadingOverlay { position: fixed; inset: 0; background: var(--paper); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; z-index: 999; }
+  #loadingOverlay p { font-size: 0.75rem; opacity: 0.5; letter-spacing: 0.08em; }
+  .spinner { width: 28px; height: 28px; border: 2px solid var(--rule); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="loadingOverlay"><div class="spinner"></div><p>Laden...</p></div>
+
+<header>
+  <a class="back-btn" href="index.html">← Terug</a>
+  <div>
+    <h1>Gegevens</h1>
+    <div class="klant-name" id="klantName">—</div>
+  </div>
+  <span class="sync" id="syncStatus">● opgeslagen</span>
+</header>
+
+<main id="mainContent"></main>
+
+<script>
+const SUPABASE_URL      = 'https://iubmajperipojqtlhwqk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1Ym1hanBlcmlwb2pxdGxod3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0ODM2MzcsImV4cCI6MjA5NDA1OTYzN30.IiUQAGO9rFuSC2LQlFr6dzmQPatCS-N7mjZdJzEQRNs';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const SECTIONS = [
+  {
+    title: 'Persoonsgegevens',
+    fields: [
+      { key: 'leg_ouders_p1',  label: 'Legitimatie ouders partner 1' },
+      { key: 'leg_ouders_p2',  label: 'Legitimatie ouders partner 2' },
+      { key: 'leg_kinderen',   label: 'Legitimatie kinderen' },
+      { key: 'huwelijkse_vw',  label: 'Huwelijkse / Partner voorwaarden' },
+      { key: 'testament',      label: 'Testament' },
+      { key: 'werkgever_p1',   label: 'Werkgeversverklaring partner 1' },
+      { key: 'werkgever_p2',   label: 'Werkgeversverklaring partner 2' },
+      { key: 'loonstroken_p1', label: 'Recente loonstroken partner 1' },
+      { key: 'loonstroken_p2', label: 'Recente loonstroken partner 2' },
+      { key: 'jaaropgave_p1',  label: 'Jaaropgave laatste 2 jaar partner 1' },
+      { key: 'jaaropgave_p2',  label: 'Jaaropgave laatste 2 jaar partner 2' },
+      { key: 'belasting_p1',   label: 'Belastingaangifte laatste 2 jaar partner 1' },
+      { key: 'belasting_p2',   label: 'Belastingaangifte laatste 2 jaar partner 2' },
+      { key: 'waarde_autos',   label: "Gegevens waarde auto's" },
+      { key: 'pensioen_p1',    label: 'Pensioengegevens partner 1' },
+      { key: 'pensioen_p2',    label: 'Pensioengegevens partner 2' },
+      { key: 'saldi',          label: 'Saldi en rekeningnummers bank- en spaarrekeningen' },
+      { key: 'saldo_polis',    label: 'Saldo gekoppelde spaar- en beleggingspolis' },
+      { key: 'lijfrente',      label: 'Lijfrenteregeling' },
+      { key: 'kapitaalverz',   label: 'Kapitaalverz spaarplan' },
+      { key: 'schulden',       label: 'Schulden / doorlopend credit / CC' },
+      { key: 'schenkingen',    label: 'Schenkingen / erfenissen' },
+    ]
+  },
+  {
+    title: 'Woning',
+    fields: [
+      { key: 'notarisakte',       label: 'Notarisakte eigen woning' },
+      { key: 'hypotheekgegevens', label: 'Hypotheekgegevens' },
+      { key: 'hypotheekakte',     label: 'Hypotheekakte' },
+      { key: 'woz',               label: 'WOZ waarde woning' },
+      { key: 'jaaropgave_hyp',    label: 'Jaaropgave hypotheek' },
+    ]
+  },
+  {
+    title: 'Zakelijk',
+    fields: [
+      { key: 'jaarcijfers_p1', label: 'Jaarcijfers laatste 3 jaar partner 1' },
+      { key: 'jaarcijfers_p2', label: 'Jaarcijfers laatste 3 jaar partner 2' },
+    ]
+  },
+  {
+    title: 'Rechtbank',
+    fields: [
+      { key: 'huwelijksakte',   label: 'Huwelijksakte / Partnerschapsakte' },
+      { key: 'kindverklaringen', label: 'Kindverklaringen' },
+      { key: 'geboorteaktes',   label: 'Geboorteaktes' },
+    ]
+  }
+];
+
+const params = new URLSearchParams(window.location.search);
+const dossierId = params.get('id');
+let infoData = {};
+let saveTimer = null;
+
+function setSyncStatus(state) {
+  const el = document.getElementById('syncStatus');
+  el.className = 'sync ' + state;
+  el.textContent = state === 'saving' ? '● opslaan...' : state === 'error' ? '● fout' : '● opgeslagen';
+}
+
+async function save() {
+  const naamA = (infoData._klant && infoData._klant.naam_a) || '';
+  const naamB = (infoData._klant && infoData._klant.naam_b) || '';
+  const parts = [naamA, naamB].filter(Boolean);
+  const payload = { info_data: JSON.stringify(infoData) };
+  if (parts.length > 0) {
+    payload.klant = parts.join(' - ');
+    document.getElementById('klantName').textContent = payload.klant;
+    document.title = `Gegevens – ${payload.klant}`;
+  }
+  const rechtbankKeys = ['huwelijksakte', 'kindverklaringen', 'geboorteaktes'];
+  payload.docs_compleet = rechtbankKeys.every(key => {
+    const d = infoData[key] || { b: 0, a: 0 };
+    return d.b === d.a;
+  }) ? 'ja' : 'nee';
+
+  const toevoeging = infoData._klant && infoData._klant.toevoegingen;
+  if (toevoeging === 'Geen') {
+    payload.aangevraagd = 'n.v.t.';
+    payload.bevestigd = 'n.v.t.';
+    payload.vergoeding_aangevraagd = 'n.v.t.';
+    payload.vergoeding_ontvangen = 'n.v.t.';
+  } else if (toevoeging) {
+    const toevCols = ['aangevraagd','bevestigd','vergoeding_aangevraagd','vergoeding_ontvangen'];
+    const { data: curToev } = await db.from('dossiers').select(toevCols.join(',')).eq('id', dossierId).single();
+    toevCols.forEach(col => { if (curToev && curToev[col] === 'n.v.t.') payload[col] = null; });
+  }
+  const tCols = ['ter_controle','antwoord','naar_klanten','akkoord_klanten',
+   'docs_verstuurd','belafspraak','rechtbank','beschikking',
+   'verstuurd_klanten','akkoord_klanter'];
+  const rb = infoData._dienstverlening && infoData._dienstverlening.rechtbank;
+  if (rb === 'Nee' || rb === 'Ja' || infoData._nvt) {
+    const { data: cur } = await db.from('dossiers').select(tCols.join(',')).eq('id', dossierId).single();
+    tCols.forEach(col => {
+      const v = cur && cur[col];
+      if (rb === 'Ja'  && v === 'n.v.t.')                              payload[col] = null;
+      else if ((rb === 'Nee' || infoData._nvt) && (!v || v === 'n.v.t.')) payload[col] = 'n.v.t.';
+    });
+  }
+
+  const { error } = await db.from('dossiers').update(payload).eq('id', dossierId);
+  if (error) setSyncStatus('error'); else setSyncStatus('saved');
+}
+
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  setSyncStatus('saving');
+  saveTimer = setTimeout(save, 700);
+}
+
+function setAllNvt() {
+  infoData._nvt = true;
+  SECTIONS.forEach(section => { section.fields.forEach(f => { infoData[f.key] = { b: 0, a: 0 }; }); });
+  renderForm();
+  scheduleSave();
+}
+
+function resetNvt() {
+  delete infoData._nvt;
+  SECTIONS.forEach(section => { section.fields.forEach(f => { infoData[f.key] = { b: 1, a: 0 }; }); });
+  renderForm();
+  scheduleSave();
+}
+
+const KLANT_FIELDS = [
+  { key: 'naam_a',       label: 'Naam A' },
+  { key: 'naam_b',       label: 'Naam B' },
+  { key: 'relatie',      label: 'Relatie' },
+  { key: 'vorm',         label: 'Vorm' },
+  { key: 'kinderen',     label: 'Kinderen' },
+  { key: 'toevoegingen', label: 'Toevoegingen' },
+  { key: 'woning',       label: 'Woning' },
+  { key: 'bedrijf',      label: 'Bedrijf' },
+];
+
+function renderForm() {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = '';
+  const naamA = (infoData._klant && infoData._klant.naam_a) || 'Partner 1';
+  const naamB = (infoData._klant && infoData._klant.naam_b) || 'Partner 2';
+
+  if (infoData._nvt) {
+    const banner = document.createElement('div');
+    banner.className = 'nvt-banner';
+    banner.style.cssText = 'background:var(--green);color:white;padding:10px 16px;border-radius:4px;font-size:0.73rem;display:flex;align-items:center;gap:16px;margin-bottom:28px;';
+    banner.innerHTML = '<span>Documenten niet van toepassing — Info knop staat op groen.</span>';
+    const resetBtn = document.createElement('button');
+    resetBtn.textContent = 'Reset';
+    resetBtn.style.cssText = 'font-family:"DM Mono",monospace;font-size:0.68rem;padding:3px 10px;border:1.5px solid white;border-radius:3px;background:transparent;color:white;cursor:pointer;margin-left:auto;';
+    resetBtn.onclick = resetNvt;
+    banner.appendChild(resetBtn);
+    main.appendChild(banner);
+  }
+
+  const layout = document.createElement('div');
+  layout.style.cssText = 'display:flex;gap:48px;align-items:flex-start;';
+
+  // ── LEFT: Klantgegevens ──
+  const leftCol = document.createElement('div');
+  leftCol.style.cssText = 'flex-shrink:0;width:400px;';
+
+  const klantSection = document.createElement('div');
+  klantSection.className = 'section';
+
+  const klantTitleRow = document.createElement('div');
+  klantTitleRow.style.cssText = 'display:flex;align-items:center;padding-bottom:8px;border-bottom:2px solid var(--ink);margin-bottom:0;';
+  const klantTitleText = document.createElement('div');
+  klantTitleText.className = 'section-title';
+  klantTitleText.style.cssText = 'border:none;padding:0;margin:0;';
+  klantTitleText.textContent = 'Klantgegevens';
+  klantTitleRow.appendChild(klantTitleText);
+  klantSection.appendChild(klantTitleRow);
+
+  const klantTable = document.createElement('table');
+  klantTable.className = 'field-table';
+  klantTable.innerHTML = '<thead><tr><th style="width:25%">Veld</th><th style="width:75%;text-align:left;">Waarde</th></tr></thead>';
+  const klantTbody = document.createElement('tbody');
+  const klant = infoData._klant || {};
+  const inputStyle = 'width:100%;border:none;outline:none;font-family:"DM Mono",monospace;font-size:0.73rem;background:transparent;padding:0;color:var(--ink);';
+
+  const RELATIE_OPTIONS = ['', 'Gehuwd', 'Geregistreerd Partner', 'Samenlevers', 'Reeds gescheiden'];
+  const VORM_MAP = {
+    'Gehuwd':                ['GVG', 'HVW'],
+    'Geregistreerd Partner': ['GVG', 'Partner VW'],
+    'Samenlevers':           ['Contract (SW)', 'Geen contract (SW)'],
+    'Reeds gescheiden':      ['n.v.t.'],
+  };
+  const selectStyle = inputStyle + '-webkit-appearance:none;appearance:none;cursor:pointer;';
+
+  let vormSelect = null;
+
+  function buildVormOptions(sel, relatieVal) {
+    const opts = VORM_MAP[relatieVal] || [];
+    const prev = infoData._klant ? infoData._klant['vorm'] || '' : '';
+    sel.innerHTML = '';
+    const empty = document.createElement('option');
+    empty.value = ''; empty.textContent = '—'; sel.appendChild(empty);
+    opts.forEach(opt => {
+      const o = document.createElement('option');
+      o.value = opt; o.textContent = opt;
+      if (prev === opt) o.selected = true;
+      sel.appendChild(o);
+    });
+    if (opts.length === 1) sel.value = opts[0];
+  }
+
+  function applyBedrijfRules(bedrijfVal) {
+    const bedrijfFields = SECTIONS.find(s => s.title === 'Zakelijk').fields;
+    const b = (bedrijfVal === 'Nee') ? 0 : 1;
+    bedrijfFields.forEach(f => {
+      if (!infoData[f.key]) infoData[f.key] = { b: 1, a: 0 };
+      infoData[f.key].b = b;
+    });
+  }
+
+  function applyWoningRules(woningVal) {
+    const woningFields = SECTIONS.find(s => s.title === 'Woning').fields;
+    const b = (woningVal === 'Nee') ? 0 : 1;
+    woningFields.forEach(f => {
+      if (!infoData[f.key]) infoData[f.key] = { b: 1, a: 0 };
+      infoData[f.key].b = b;
+    });
+  }
+
+  function applyKinderenRules(kinderenVal) {
+    const legB = (kinderenVal === 'Geen') ? 0 : 1;
+    if (!infoData['leg_kinderen']) infoData['leg_kinderen'] = { b: 1, a: 0 };
+    infoData['leg_kinderen'].b = legB;
+    if (!infoData['geboorteaktes']) infoData['geboorteaktes'] = { b: 1, a: 0 };
+    infoData['geboorteaktes'].b = legB;
+    if (!infoData['kindverklaringen']) infoData['kindverklaringen'] = { b: 0, a: 0 };
+    infoData['kindverklaringen'].b = (kinderenVal === 'Kinderen >8') ? 1 : 0;
+  }
+
+  function applyVormRules(vormVal) {
+    const b = ['GVG', 'Geen contract (SW)', 'n.v.t.'].includes(vormVal) ? 0 : 1;
+    if (!infoData['huwelijkse_vw']) infoData['huwelijkse_vw'] = { b: 1, a: 0 };
+    infoData['huwelijkse_vw'].b = b;
+    if (!infoData['huwelijksakte']) infoData['huwelijksakte'] = { b: 1, a: 0 };
+    infoData['huwelijksakte'].b = b;
+  }
+
+  KLANT_FIELDS.forEach(f => {
+    const tr = document.createElement('tr');
+    const labelTd = document.createElement('td');
+    labelTd.textContent = f.label;
+    const valTd = document.createElement('td');
+    valTd.style.cssText = 'text-align:left;';
+
+    let control;
+    if (f.key === 'relatie') {
+      control = document.createElement('select');
+      control.style.cssText = selectStyle;
+      RELATIE_OPTIONS.forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt; o.textContent = opt || '—';
+        if ((klant['relatie'] || '') === opt) o.selected = true;
+        control.appendChild(o);
+      });
+      control.onchange = () => {
+        if (!infoData._klant) infoData._klant = {};
+        infoData._klant['relatie'] = control.value;
+        if (vormSelect) {
+          buildVormOptions(vormSelect, control.value);
+          infoData._klant['vorm'] = vormSelect.value;
+          applyVormRules(vormSelect.value);
+        }
+        scheduleSave();
+        renderForm();
+      };
+    } else if (f.key === 'vorm') {
+      control = document.createElement('select');
+      control.style.cssText = selectStyle;
+      buildVormOptions(control, klant['relatie'] || '');
+      vormSelect = control;
+      control.onchange = () => {
+        if (!infoData._klant) infoData._klant = {};
+        infoData._klant['vorm'] = control.value;
+        applyVormRules(control.value);
+        scheduleSave();
+        renderForm();
+      };
+    } else if (f.key === 'bedrijf') {
+      control = document.createElement('select');
+      control.style.cssText = selectStyle;
+      ['', 'Ja', 'Nee'].forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt; o.textContent = opt || '—';
+        if ((klant['bedrijf'] || '') === opt) o.selected = true;
+        control.appendChild(o);
+      });
+      control.onchange = () => {
+        if (!infoData._klant) infoData._klant = {};
+        infoData._klant['bedrijf'] = control.value;
+        applyBedrijfRules(control.value);
+        scheduleSave();
+        renderForm();
+      };
+    } else if (f.key === 'woning') {
+      control = document.createElement('select');
+      control.style.cssText = selectStyle;
+      ['', 'Ja', 'Nee'].forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt; o.textContent = opt || '—';
+        if ((klant['woning'] || '') === opt) o.selected = true;
+        control.appendChild(o);
+      });
+      control.onchange = () => {
+        if (!infoData._klant) infoData._klant = {};
+        infoData._klant['woning'] = control.value;
+        applyWoningRules(control.value);
+        scheduleSave();
+        renderForm();
+      };
+    } else if (f.key === 'toevoegingen') {
+      control = document.createElement('select');
+      control.style.cssText = selectStyle;
+      ['', 'Geen', 'Enkele toevoeging', 'Dubbele toevoeging'].forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt; o.textContent = opt || '—';
+        if ((klant['toevoegingen'] || '') === opt) o.selected = true;
+        control.appendChild(o);
+      });
+      control.onchange = () => {
+        if (!infoData._klant) infoData._klant = {};
+        infoData._klant['toevoegingen'] = control.value;
+        scheduleSave();
+      };
+    } else if (f.key === 'kinderen') {
+      control = document.createElement('select');
+      control.style.cssText = selectStyle;
+      ['', 'Geen', 'Kinderen <8', 'Kinderen >8'].forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt; o.textContent = opt || '—';
+        if ((klant['kinderen'] || '') === opt) o.selected = true;
+        control.appendChild(o);
+      });
+      control.onchange = () => {
+        if (!infoData._klant) infoData._klant = {};
+        infoData._klant['kinderen'] = control.value;
+        applyKinderenRules(control.value);
+        scheduleSave();
+        renderForm();
+      };
+    } else {
+      control = document.createElement('input');
+      control.type = 'text';
+      control.value = klant[f.key] || '';
+      control.style.cssText = inputStyle;
+      control.oninput = () => {
+        if (!infoData._klant) infoData._klant = {};
+        infoData._klant[f.key] = control.value;
+        scheduleSave();
+      };
+    }
+
+    valTd.appendChild(control);
+    tr.appendChild(labelTd);
+    tr.appendChild(valTd);
+    klantTbody.appendChild(tr);
+  });
+
+  klantTable.appendChild(klantTbody);
+  klantSection.appendChild(klantTable);
+  leftCol.appendChild(klantSection);
+
+  // ── Dienstverlening ──
+  const dienstvSection = document.createElement('div');
+  dienstvSection.className = 'section';
+  dienstvSection.style.marginTop = '28px';
+
+  const dienstvTitleRow = document.createElement('div');
+  dienstvTitleRow.style.cssText = 'display:flex;align-items:center;padding-bottom:8px;border-bottom:2px solid var(--ink);margin-bottom:0;';
+  const dienstvTitleText = document.createElement('div');
+  dienstvTitleText.className = 'section-title';
+  dienstvTitleText.style.cssText = 'border:none;padding:0;margin:0;';
+  dienstvTitleText.textContent = 'Dienstverlening';
+  dienstvTitleRow.appendChild(dienstvTitleText);
+  dienstvSection.appendChild(dienstvTitleRow);
+
+  const dienstvTable = document.createElement('table');
+  dienstvTable.className = 'field-table';
+  dienstvTable.innerHTML = '<thead><tr><th style="width:25%">Veld</th><th style="width:75%;text-align:left;">Waarde</th></tr></thead>';
+  const dienstvTbody = document.createElement('tbody');
+  const dienstvData = infoData._dienstverlening || {};
+
+  [
+    { key: 'type',      label: 'Type',      options: ['', 'Scheiding', 'Herziening OP', 'Herberekening', 'Scheiden of Blijven'] },
+    { key: 'rechtbank', label: 'Via rechtbank', options: ['', 'Ja', 'Nee'] },
+  ].forEach(f => {
+    const tr = document.createElement('tr');
+    const labelTd = document.createElement('td');
+    labelTd.textContent = f.label;
+    const valTd = document.createElement('td');
+    valTd.style.cssText = 'text-align:left;';
+    const sel = document.createElement('select');
+    sel.style.cssText = selectStyle;
+    f.options.forEach(opt => {
+      const o = document.createElement('option');
+      o.value = opt; o.textContent = opt || '—';
+      if ((dienstvData[f.key] || '') === opt) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.onchange = () => {
+      if (!infoData._dienstverlening) infoData._dienstverlening = {};
+      infoData._dienstverlening[f.key] = sel.value;
+      scheduleSave();
+    };
+    valTd.appendChild(sel);
+    tr.appendChild(labelTd);
+    tr.appendChild(valTd);
+    dienstvTbody.appendChild(tr);
+  });
+
+  dienstvTable.appendChild(dienstvTbody);
+  dienstvSection.appendChild(dienstvTable);
+  leftCol.appendChild(dienstvSection);
+
+  layout.appendChild(leftCol);
+
+  // ── MIDDLE: Persoonsgegevens ──
+  const midCol = document.createElement('div');
+  midCol.style.cssText = 'flex:1;';
+
+  // ── RIGHT: Woning + Zakelijk ──
+  const rightCol = document.createElement('div');
+  rightCol.style.cssText = 'flex-shrink:0;';
+
+  function buildSectionDiv(section) {
+    const div = document.createElement('div');
+    div.className = 'section';
+
+    const titleRow = document.createElement('div');
+    titleRow.style.cssText = 'display:flex;align-items:center;gap:12px;padding-bottom:8px;border-bottom:2px solid var(--ink);margin-bottom:0;';
+    const title = document.createElement('div');
+    title.className = 'section-title';
+    title.style.cssText = 'border:none;padding:0;margin:0;';
+    title.textContent = section.title;
+    titleRow.appendChild(title);
+    if (section.title === 'Persoonsgegevens') {
+      const btnStyle = 'font-family:"DM Mono",monospace;font-size:0.68rem;padding:4px 12px;border:1.5px solid var(--ink);border-radius:3px;background:transparent;color:var(--ink);cursor:pointer;letter-spacing:0.05em;';
+      const b1 = document.createElement('button');
+      b1.style.cssText = btnStyle;
+      b1.textContent = 'Benodigd alles 1';
+      b1.onclick = () => setAllBenodigd(1);
+      const b0 = document.createElement('button');
+      b0.style.cssText = btnStyle;
+      b0.textContent = 'Benodigd alles 0';
+      b0.onclick = () => setAllBenodigd(0);
+      const bNvt = document.createElement('button');
+      bNvt.style.cssText = btnStyle + 'border-color:var(--green);color:var(--green);';
+      bNvt.textContent = 'Alles n.v.t.';
+      bNvt.onclick = () => setAllNvt();
+      titleRow.appendChild(b1);
+      titleRow.appendChild(b0);
+      titleRow.appendChild(bNvt);
+    }
+    div.appendChild(titleRow);
+
+    const table = document.createElement('table');
+    table.className = 'field-table' + (section.title === 'Rechtbank' ? ' rechtbank-table' : '');
+    table.innerHTML = '<thead><tr><th>Document</th><th>Benodigd</th><th>Aanwezig</th></tr></thead>';
+    const tbody = document.createElement('tbody');
+
+    section.fields.forEach(f => {
+      const d = infoData[f.key] || { b: 1, a: 0 };
+      const tr = document.createElement('tr');
+      const nameTd = document.createElement('td');
+      nameTd.textContent = f.label.replace(/partner 1/i, naamA).replace(/partner 2/i, naamB);
+      tr.appendChild(nameTd);
+
+      ['b', 'a'].forEach(field => {
+        const td = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.className = 'toggle' + (d[field] === 1 ? ' on' : '');
+        btn.textContent = d[field] === 1 ? '1' : '0';
+        btn.onclick = () => {
+          delete infoData._nvt;
+          if (!infoData[f.key]) infoData[f.key] = { b: d.b, a: d.a };
+          infoData[f.key][field] = infoData[f.key][field] === 1 ? 0 : 1;
+          const val = infoData[f.key][field];
+          btn.className = 'toggle' + (val === 1 ? ' on' : '');
+          btn.textContent = val === 1 ? '1' : '0';
+          if (document.querySelector('#mainContent .nvt-banner')) renderForm();
+          scheduleSave();
+        };
+        td.appendChild(btn);
+        tr.appendChild(td);
+      });
+
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    div.appendChild(table);
+    return div;
+  }
+
+  SECTIONS.forEach(section => {
+    const div = buildSectionDiv(section);
+    if (section.title === 'Persoonsgegevens') {
+      midCol.appendChild(div);
+    } else {
+      rightCol.appendChild(div);
+    }
+  });
+
+  layout.appendChild(midCol);
+  layout.appendChild(rightCol);
+  main.appendChild(layout);
+  main.style.display = 'block';
+
+  // Sync title row heights and first-column widths after render
+  requestAnimationFrame(() => {
+    const leftTitleRow  = leftCol.querySelector('div[style*="border-bottom"]');
+    const midTitleRow   = midCol.querySelector('div[style*="border-bottom"]');
+    const rightTitleRow = rightCol.querySelector('div[style*="border-bottom"]');
+    const titleRows = [leftTitleRow, midTitleRow, rightTitleRow].filter(Boolean);
+    if (titleRows.length > 0) {
+      const h = Math.max(...titleRows.map(r => r.offsetHeight));
+      titleRows.forEach(r => r.style.minHeight = h + 'px');
+    }
+
+    // Make first column the same width across all section tables
+    const allTables = [...midCol.querySelectorAll('.field-table'), ...rightCol.querySelectorAll('.field-table')];
+    let maxW = 0;
+    allTables.forEach(table => {
+      table.querySelectorAll('tbody td:first-child').forEach(td => {
+        td.style.whiteSpace = 'nowrap';
+        maxW = Math.max(maxW, td.offsetWidth);
+      });
+    });
+    if (maxW > 0) {
+      allTables.forEach(table => {
+        const th = table.querySelector('thead th:first-child');
+        if (th) th.style.minWidth = maxW + 'px';
+        table.querySelectorAll('tbody td:first-child').forEach(td => {
+          td.style.minWidth = maxW + 'px';
+        });
+      });
+    }
+  });
+}
+
+function setAllBenodigd(val) {
+  delete infoData._nvt;
+  SECTIONS.forEach(section => {
+    section.fields.forEach(f => {
+      if (!infoData[f.key]) infoData[f.key] = { b: 0, a: 0 };
+      infoData[f.key].b = val;
+    });
+  });
+  renderForm();
+  scheduleSave();
+}
+
+async function init() {
+  if (!dossierId) {
+    document.getElementById('loadingOverlay').innerHTML = '<p>Geen dossier opgegeven.</p>';
+    return;
+  }
+  const timeout = new Promise((_, reject) => setTimeout(() => reject(), 5000));
+  try {
+    const { data: { session } } = await Promise.race([db.auth.getSession(), timeout]);
+    if (!session) { window.location.href = 'index.html'; return; }
+
+    const { data, error } = await db.from('dossiers').select('klant, info_data').eq('id', dossierId).single();
+    if (error || !data) { document.getElementById('loadingOverlay').innerHTML = '<p>Dossier niet gevonden.</p>'; return; }
+
+    document.getElementById('klantName').textContent = data.klant || '—';
+    document.title = `Gegevens – ${data.klant || 'Dossier'}`;
+    infoData = data.info_data ? JSON.parse(data.info_data) : {};
+
+    renderForm();
+    document.getElementById('loadingOverlay').style.display = 'none';
+  } catch (e) {
+    window.location.href = 'index.html';
+  }
+}
+
+window.addEventListener('pageshow', e => { if (e.persisted) window.location.reload(); });
+init();
+</script>
+</body>
+</html>

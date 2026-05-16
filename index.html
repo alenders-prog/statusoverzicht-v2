@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Statusoverzicht – Kanban</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div id="loadingOverlay"><div class="spinner"></div><p>Laden...</p></div>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <h1>Statusoverzicht</h1>
+    <p class="subtitle">Dossier Beheer</p>
+    <label for="emailInput">E-mailadres</label>
+    <input type="email" id="emailInput" placeholder="naam@kantoor.nl" autocomplete="email">
+    <label for="passwordInput">Wachtwoord</label>
+    <input type="password" id="passwordInput" placeholder="••••••••" autocomplete="current-password">
+    <button class="login-btn" id="loginBtn" onclick="signIn()">Inloggen</button>
+    <p class="login-msg" id="loginMsg"></p>
+  </div>
+</div>
+
+<div id="appScreen">
+  <header>
+    <h1>Statusoverzicht</h1>
+    <div class="header-actions">
+      <div class="search-box">
+        <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="#999" stroke-width="2"><circle cx="8" cy="8" r="6"/><path d="M14 14l4 4"/></svg>
+        <input type="text" id="searchInput" placeholder="Zoek op klantnaam..." oninput="filterCards(this.value)">
+      </div>
+      <span id="userEmail"></span>
+      <button class="btn btn-ghost" onclick="window.location.href='settings.html'">Instellingen</button>
+      <button class="btn btn-ghost" onclick="signOut()">Uitloggen</button>
+      <button class="btn btn-primary" onclick="addRow()">+ Nieuwe klant</button>
+    </div>
+  </header>
+  <div class="kanban-wrapper" id="kanbanBoard"></div>
+</div>
+
+<div id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

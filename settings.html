@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instellingen</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  #alarmTable td input { display: block !important; }
+</style>
+</head>
+<body>
+
+<div id="loadingOverlay"><div class="spinner"></div><p>Laden...</p></div>
+
+<div id="appScreen">
+  <header>
+    <h1>Instellingen</h1>
+    <span class="subtitle">Statusoverzicht</span>
+    <div class="header-actions">
+      <span id="userEmail"></span>
+      <button class="btn btn-ghost" onclick="window.location.href='index.html'">← Terug</button>
+    </div>
+  </header>
+
+  <div style="max-width:640px;margin:48px auto;padding:0 24px;">
+
+    <div id="dbError" style="display:none;background:#fdecea;border:1px solid #f5a8a0;border-radius:4px;padding:10px 14px;font-size:0.72rem;margin-bottom:16px;color:#8b1a10;white-space:pre-wrap;"></div>
+    <div style="margin-bottom:44px;">
+      <div style="font-family:'Fraunces',serif;font-size:0.95rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;padding-bottom:8px;border-bottom:2px solid var(--ink);margin-bottom:0;">Alarminstellingen</div>
+      <table id="alarmTable" style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th style="font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;padding:8px 12px;background:var(--cream);color:#888;border-bottom:1px solid var(--rule);font-weight:500;text-align:left;">Naam</th>
+            <th style="font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;padding:8px 12px;background:var(--cream);color:#888;border-bottom:1px solid var(--rule);font-weight:500;text-align:left;width:160px;">Waarde (dagen)</th>
+          </tr>
+        </thead>
+        <tbody id="alarmBody"></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL      = 'https://iubmajperipojqtlhwqk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1Ym1hanBlcmlwb2pxdGxod3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0ODM2MzcsImV4cCI6MjA5NDA1OTYzN30.IiUQAGO9rFuSC2LQlFr6dzmQPatCS-N7mjZdJzEQRNs';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const ALARM_ROWS = [
+  { key: 'info_voor_afspraak',              label: 'Info binnen voor afspraak' },
+  { key: 'reactie_docs_teurlings',          label: 'Reactietijd toevoeging bevestigd' },
+  { key: 'reactie_klanten_concepten',       label: 'Reactietijd klanten op concepten' },
+  { key: 'reactie_teurlings_concepten',     label: 'Reactietijd Teurlings op concepten' },
+  { key: 'reactie_beschikking',             label: 'Reactietijd Beschikking' },
+  { key: 'reactie_akkoord_beschikking',     label: 'Reactietijd Akkoord klanten op beschikking' },
+  { key: 'reactie_inschrijving_gemeente',   label: 'Reactietijd Inschrijving gemeente' },
+  { key: 'reactie_vergoeding_rvr',          label: 'Reactietijd Vergoeding RvR Ontvangen' },
+];
+
+let settings = JSON.parse(localStorage.getItem('alarmsettings') || '{}');
+let saveTimer = null;
+
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveSettings, 700);
+}
+
+async function saveSettings() {
+  localStorage.setItem('alarmsettings', JSON.stringify(settings));
+  const { error } = await db.from('alarmsettings').upsert({ id: 'main', settings });
+  const el = document.getElementById('dbError');
+  if (error) {
+    el.textContent = `Database fout bij opslaan:\n${error.message}\n(code: ${error.code})`;
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function renderAlarmTable() {
+  const tbody = document.getElementById('alarmBody');
+  tbody.innerHTML = '';
+  const cellStyle = 'padding:9px 12px;font-size:0.73rem;border-bottom:1px solid var(--rule);';
+  const inputStyle = 'width:80px;border:1.5px solid var(--rule);border-radius:3px;padding:5px 8px;font-family:"DM Mono",monospace;font-size:0.73rem;background:white;color:var(--ink);outline:none;text-align:right;';
+
+  ALARM_ROWS.forEach(row => {
+    const tr = document.createElement('tr');
+
+    const nameTd = document.createElement('td');
+    nameTd.style.cssText = cellStyle;
+    nameTd.textContent = row.label;
+
+    const valTd = document.createElement('td');
+    valTd.style.cssText = cellStyle + 'width:160px;';
+    const valInput = document.createElement('input');
+    valInput.type = 'number';
+    valInput.min = '0';
+    valInput.value = settings[row.key] || '';
+    valInput.placeholder = '—';
+    valInput.style.cssText = inputStyle;
+    valInput.addEventListener('focus', () => valInput.style.borderColor = 'var(--accent)');
+    valInput.addEventListener('blur',  () => valInput.style.borderColor = 'var(--rule)');
+    valInput.oninput = () => { settings[row.key] = valInput.value; scheduleSave(); };
+    valTd.appendChild(valInput);
+
+    tr.appendChild(nameTd);
+    tr.appendChild(valTd);
+    tbody.appendChild(tr);
+  });
+}
+
+async function init() {
+  const { data: { session } } = await db.auth.getSession();
+  document.getElementById('loadingOverlay').style.display = 'none';
+  if (!session) { window.location.href = 'index.html'; return; }
+  document.getElementById('userEmail').textContent = session.user.email;
+
+  const { data, error } = await db.from('alarmsettings').select('settings').eq('id', 'main').maybeSingle();
+  if (data && data.settings) {
+    settings = data.settings;
+    localStorage.setItem('alarmsettings', JSON.stringify(settings));
+  } else {
+    const msg = error
+      ? `Database fout bij laden:\n${error.message}\n(code: ${error.code})`
+      : 'Geen instellingen gevonden in database (alarmsettings tabel leeg of niet toegankelijk).';
+    const el = document.getElementById('dbError');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  renderAlarmTable();
+  document.getElementById('appScreen').style.display = 'block';
+}
+
+init();
+</script>
+</body>
+</html>
