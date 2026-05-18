@@ -29,16 +29,30 @@
   <header>
     <h1>Statusoverzicht</h1>
     <div class="header-actions">
-      <div class="search-box">
-        <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="#999" stroke-width="2"><circle cx="8" cy="8" r="6"/><path d="M14 14l4 4"/></svg>
-        <input type="text" id="searchInput" placeholder="Zoek op klantnaam..." oninput="filterCards(this.value)">
-      </div>
       <span id="userEmail"></span>
       <button class="btn btn-ghost" onclick="window.location.href='settings.html'">Instellingen</button>
       <button class="btn btn-ghost" onclick="signOut()">Uitloggen</button>
-      <button class="btn btn-primary" onclick="addRow()">+ Nieuwe klant</button>
     </div>
   </header>
+  <div class="toolbar">
+    <div class="view-toggle">
+      <button class="view-btn active" title="Kaartweergave" onclick="window.location.href='index.html'"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg></button>
+      <button class="view-btn" title="Lijstweergave" onclick="window.location.href='statusoverzicht.html'"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="14" height="2" rx="1"/><rect x="1" y="7" width="14" height="2" rx="1"/><rect x="1" y="12" width="14" height="2" rx="1"/></svg></button>
+    </div>
+    <div class="search-box">
+      <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="#999" stroke-width="2"><circle cx="8" cy="8" r="6"/><path d="M14 14l4 4"/></svg>
+      <input type="text" id="searchInput" placeholder="Zoek op klantnaam..." oninput="filterCards(this.value);document.getElementById('searchClear').style.display=this.value?'flex':'none'">
+      <button id="searchClear" class="search-clear" style="display:none" onclick="document.getElementById('searchInput').value='';filterCards('');this.style.display='none';document.getElementById('searchInput').focus()">×</button>
+    </div>
+    <button class="filter-tag active" onclick="setFilter('all', this)">Alles</button>
+    <button class="filter-tag" onclick="setFilter('alarm', this)">Actie vereist</button>
+    <select class="kanban-sort-select toolbar-sort" onchange="setSort(this.value)">
+      <option value="alarm">⚡ Alarm</option>
+      <option value="naam">A→Z Naam</option>
+      <option value="datum">Datum</option>
+    </select>
+    <button class="btn btn-primary" onclick="addRow()">+ Nieuwe klant</button>
+  </div>
   <div class="kanban-wrapper" id="kanbanBoard"></div>
 </div>
 

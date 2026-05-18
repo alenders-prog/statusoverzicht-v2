@@ -21,9 +21,22 @@
   header { background: var(--ink); color: var(--paper); padding: 16px 32px; display: flex; align-items: center; gap: 20px; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
   .back-btn { font-family: 'DM Mono', monospace; font-size: 0.72rem; padding: 6px 14px; border: 1.5px solid rgba(255,255,255,0.3); border-radius: 3px; color: var(--paper); background: transparent; cursor: pointer; text-decoration: none; letter-spacing: 0.06em; transition: all 0.15s; }
   .back-btn:hover { background: rgba(255,255,255,0.1); }
-  header h1 { font-family: 'Fraunces', serif; font-size: 1.4rem; font-weight: 600; }
-  .klant-name { font-size: 0.72rem; opacity: 0.55; margin-top: 2px; }
+  header h1 { font-family: 'DM Mono', monospace; font-size: 0.65rem; opacity: 0.45; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 3px; font-weight: 400; }
+  .klant-name { font-family: 'Fraunces', serif; font-size: 1.4rem; font-weight: 600; line-height: 1.1; }
   .sync { font-size: 0.65rem; opacity: 0.4; margin-left: auto; letter-spacing: 0.05em; }
+  .btn-delete-klant { font-family: 'DM Mono', monospace; font-size: 0.68rem; padding: 5px 12px; border: 1.5px solid #c8390a; border-radius: 3px; color: #c8390a; background: transparent; cursor: pointer; letter-spacing: 0.06em; transition: all 0.15s; white-space: nowrap; }
+  .btn-delete-klant:hover { background: #c8390a; color: white; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: white; border-radius: 6px; padding: 32px; max-width: 400px; width: 90%; box-shadow: 0 12px 40px rgba(0,0,0,0.2); }
+  .modal h2 { font-family: 'Fraunces', serif; font-size: 1.2rem; font-weight: 600; margin-bottom: 12px; }
+  .modal p { font-size: 0.78rem; color: #555; margin-bottom: 24px; line-height: 1.6; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .modal-actions .btn { font-family: 'DM Mono', monospace; font-size: 0.72rem; padding: 7px 16px; border: 1.5px solid currentColor; border-radius: 3px; cursor: pointer; letter-spacing: 0.06em; background: transparent; }
+  .modal-actions .btn-cancel { color: #666; border-color: #ccc; }
+  .modal-actions .btn-cancel:hover { background: #f5f5f5; }
+  .modal-actions .btn-confirm-delete { background: #c8390a; border-color: #c8390a; color: white; }
+  .modal-actions .btn-confirm-delete:hover { background: #a82e06; border-color: #a82e06; }
   .sync.saving { opacity: 1; color: #6ecfa0; }
   .sync.error { opacity: 1; color: var(--accent); }
 
@@ -44,14 +57,20 @@
   .status-section-title { font-family: 'Fraunces', serif; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; padding-bottom: 5px; margin-bottom: 0; }
   .status-field-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 32px; border-bottom: 1px solid var(--rule); font-size: 0.68rem; }
   .status-field-label { color: #666; white-space: nowrap; flex-shrink: 0; }
-  .status-field-input { display: flex; align-items: center; gap: 4px; }
-  .status-date-input { border: none; border-bottom: 1px solid var(--rule); outline: none; font-family: 'DM Mono', monospace; font-size: 0.68rem; background: transparent; color: transparent; padding: 1px 2px; width: 102px; cursor: pointer; }
-  .status-date-input.has-value { color: var(--ink); }
-  .status-date-input:focus { color: var(--ink); border-bottom-color: var(--accent); }
+  .status-field-input { display: flex; align-items: center; gap: 4px; position: relative; }
+  .status-date-display { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--ink); cursor: pointer; white-space: nowrap; min-width: 88px; display: inline-block; }
+  .status-date-display:hover { color: var(--accent); }
+  .status-date-display.is-nvt { color: #999; font-style: italic; }
+  .status-date-display.is-empty { color: transparent; }
+  .status-picker-popup { display: none; position: absolute; right: 0; top: 100%; z-index: 200; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.18); border-radius: 3px; overflow: hidden; }
+  .status-picker-popup.open { display: flex; }
+  .status-picker-input { border: none; outline: none; font-family: 'DM Mono', monospace; font-size: 0.68rem; padding: 6px 8px; background: white; color: var(--ink); flex: 1; }
   .status-yn-select { border: none; border-bottom: 1px solid var(--rule); outline: none; font-family: 'DM Mono', monospace; font-size: 0.68rem; background: transparent; color: var(--ink); padding: 1px 2px; cursor: pointer; -webkit-appearance: none; appearance: none; width: 60px; }
-  .status-nvt-badge { font-size: 0.62rem; color: #999; font-style: italic; }
-  .status-nvt-clear { border: none; background: none; cursor: pointer; color: #bbb; font-size: 0.85rem; line-height: 1; padding: 0 2px; }
-  .status-nvt-clear:hover { color: var(--accent); }
+  .nvt-btn { font-family: 'DM Mono', monospace; font-size: 0.65rem; padding: 5px 10px; border: none; border-left: 1px solid #ddd; cursor: pointer; background: var(--ink); color: var(--paper); white-space: nowrap; font-weight: 500; letter-spacing: 0.04em; }
+  .nvt-btn:hover { background: #2a2825; }
+  .status-field-row.alarm { background: #ffd5d5; }
+  .status-opmerkingen { width: 100%; min-height: 90px; font-family: 'DM Mono', monospace; font-size: 0.68rem; border: 1px solid var(--rule); border-radius: 2px; padding: 6px 8px; background: white; color: var(--ink); resize: vertical; outline: none; line-height: 1.5; }
+  .status-opmerkingen:focus { border-color: var(--ink); }
 
   .section { margin-bottom: 44px; }
   .section-title { font-family: 'Fraunces', serif; font-size: 0.95rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; padding-bottom: 8px; border-bottom: 2px solid var(--ink); margin-bottom: 0; }
@@ -83,11 +102,23 @@
 <header>
   <a class="back-btn" href="index.html">← Terug</a>
   <div>
-    <h1>Gegevens</h1>
     <div class="klant-name" id="klantName">—</div>
+    <h1>Gegevens</h1>
   </div>
+  <button class="btn-delete-klant" onclick="openDeleteModal()">Verwijder klant</button>
   <span class="sync" id="syncStatus">● opgeslagen</span>
 </header>
+
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <h2>Klant verwijderen</h2>
+    <p>Weet je zeker dat je <strong id="deleteModalName"></strong> wilt verwijderen? Dit kan niet ongedaan worden gemaakt.</p>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeDeleteModal()">Annuleren</button>
+      <button class="btn btn-confirm-delete" onclick="confirmDelete()">Verwijderen</button>
+    </div>
+  </div>
+</div>
 
 <main id="mainContent"></main>
 
@@ -200,7 +231,8 @@ const params = new URLSearchParams(window.location.search);
 const dossierId = params.get('id');
 let infoData = {}, statusData = {};
 let saveTimer = null, statusSaveTimer = null, statusSaveQueue = {};
-let activeTab = 'klantgegevens';
+let activeTab = params.get('tab') === 'klantstatus' ? 'klantstatus' : 'klantgegevens';
+let alarmSettings = {};
 
 function setSyncStatus(state) {
   const el = document.getElementById('syncStatus');
@@ -271,40 +303,127 @@ function saveStatusField(key, value) {
   }, 700);
 }
 
+function deadlinePassed(dateStr, days) {
+  if (!dateStr || dateStr === 'n.v.t.') return false;
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + (days || 0));
+  return d < new Date();
+}
+
+const ALARM_CHECKS = {
+  bevestigd:              r => { if (r.bevestigd) return false; const days = parseInt(alarmSettings.reactie_docs_teurlings) || 14; return deadlinePassed(r.aangevraagd, days); },
+  actie_voor:             r => !!(r.actie_voor && r.actie_voor !== 'n.v.t.' && new Date(r.actie_voor) < new Date()),
+  reactie_ontvangen:      r => { if (r.reactie_ontvangen) return false; const days = parseInt(alarmSettings.reactie_klanten_concepten) || 0; return !!days && deadlinePassed(r.afspraak, days); },
+  concepten_akkoord:      r => { if (r.concepten_akkoord) return false; const days = parseInt(alarmSettings.reactie_klanten_concepten) || 0; return !!days && deadlinePassed(r.reactie_ontvangen, days); },
+  ter_controle:           r => !r.ter_controle && !!(r.concepten_akkoord && r.concepten_akkoord !== 'n.v.t.'),
+  antwoord:               r => { if (r.antwoord) return false; const days = parseInt(alarmSettings.reactie_teurlings_concepten) || 0; return !!days && deadlinePassed(r.ter_controle, days); },
+  naar_klanten:           r => !r.naar_klanten && !!(r.antwoord && r.antwoord !== 'n.v.t.'),
+  akkoord_klanten:        r => !r.akkoord_klanten && !!(r.naar_klanten && r.naar_klanten !== 'n.v.t.'),
+  docs_verstuurd:         r => !r.docs_verstuurd && !!(r.akkoord_klanten && r.akkoord_klanten !== 'n.v.t.'),
+  belafspraak:            r => !r.belafspraak && !!(r.docs_verstuurd && r.docs_verstuurd !== 'n.v.t.'),
+  rechtbank:              r => !r.rechtbank && deadlinePassed(r.belafspraak, 0),
+  beschikking:            r => { if (r.beschikking) return false; const days = parseInt(alarmSettings.reactie_beschikking) || 0; return !!days && deadlinePassed(r.rechtbank, days); },
+  verstuurd_klanten:      r => !r.verstuurd_klanten && !!(r.beschikking && r.beschikking !== 'n.v.t.'),
+  akkoord_klanter:        r => { if (r.akkoord_klanter) return false; const days = parseInt(alarmSettings.reactie_akkoord_beschikking) || 0; return !!days && deadlinePassed(r.verstuurd_klanten, days); },
+  verstuurd_gemeente:     r => !r.verstuurd_gemeente && !!(r.akkoord_klanter && r.akkoord_klanter !== 'n.v.t.'),
+  inschrijving_ontvangen: r => { if (r.inschrijving_ontvangen) return false; const days = parseInt(alarmSettings.reactie_inschrijving_gemeente) || 0; return !!days && deadlinePassed(r.verstuurd_gemeente, days); },
+  beeindigd:              r => !r.beeindigd && !!(r.inschrijving_ontvangen && r.inschrijving_ontvangen !== 'n.v.t.'),
+  vergoeding_aangevraagd: r => !r.vergoeding_aangevraagd && !!(r.beeindigd && r.beeindigd !== 'n.v.t.'),
+  vergoeding_ontvangen:   r => { if (r.vergoeding_ontvangen) return false; const days = parseInt(alarmSettings.reactie_vergoeding_rvr) || 0; return !!days && deadlinePassed(r.vergoeding_aangevraagd, days); },
+  zoza_afgerond:          r => !r.zoza_afgerond && !!(r.beeindigd && r.beeindigd !== 'n.v.t.' && r.vergoeding_ontvangen),
+};
+
 function renderStatusInput(key, value, type) {
   const wrap = document.createElement('div');
   wrap.className = 'status-field-input';
 
   if (type === 'date') {
-    if (value === 'n.v.t.') {
-      const badge = document.createElement('span');
-      badge.className = 'status-nvt-badge';
-      badge.textContent = 'n.v.t.';
-      const clearBtn = document.createElement('button');
-      clearBtn.className = 'status-nvt-clear';
-      clearBtn.title = 'Verwijder n.v.t.';
-      clearBtn.textContent = '×';
-      clearBtn.onclick = () => { saveStatusField(key, null); renderForm(); };
-      wrap.appendChild(badge);
-      wrap.appendChild(clearBtn);
+    const isNvt = value === 'n.v.t.';
+    const hasDate = !!value && !isNvt;
+
+    const display = document.createElement('span');
+    display.className = 'status-date-display' + (isNvt ? ' is-nvt' : !hasDate ? ' is-empty' : '');
+    if (hasDate) {
+      const d = new Date(value);
+      display.textContent = isNaN(d.getTime()) ? value : d.toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' });
     } else {
-      const input = document.createElement('input');
-      input.type = 'date';
-      input.className = 'status-date-input' + (value ? ' has-value' : '');
-      input.value = value || '';
-      input.onchange = () => {
-        input.classList.toggle('has-value', !!input.value);
-        saveStatusField(key, input.value || null);
-      };
-      wrap.appendChild(input);
+      display.textContent = isNvt ? 'n.v.t.' : 'dd-mm-jjjj';
     }
+
+    const popup = document.createElement('div');
+    popup.className = 'status-picker-popup';
+
+    const dateInput = document.createElement('input');
+    dateInput.type = 'date';
+    dateInput.className = 'status-picker-input';
+    if (hasDate) dateInput.value = value;
+
+    const nvtBtn = document.createElement('button');
+    nvtBtn.type = 'button';
+    nvtBtn.className = 'nvt-btn';
+    nvtBtn.textContent = 'n.v.t.';
+    nvtBtn.onmousedown = e => e.preventDefault();
+
+    popup.appendChild(dateInput);
+    popup.appendChild(nvtBtn);
+
+    let outsideHandler = null;
+
+    function updateDisplay(val) {
+      if (!val) {
+        display.className = 'status-date-display is-empty';
+        display.textContent = 'dd-mm-jjjj';
+      } else if (val === 'n.v.t.') {
+        display.className = 'status-date-display is-nvt';
+        display.textContent = 'n.v.t.';
+      } else {
+        const d = new Date(val);
+        display.className = 'status-date-display';
+        display.textContent = isNaN(d.getTime()) ? val : d.toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      }
+    }
+
+    function closePopup() {
+      popup.classList.remove('open');
+      if (outsideHandler) { document.removeEventListener('click', outsideHandler); outsideHandler = null; }
+    }
+
+    function openPopup() {
+      popup.classList.add('open');
+      dateInput.focus();
+      try { if (dateInput.showPicker) dateInput.showPicker(); } catch(e) {}
+      outsideHandler = e => { if (!popup.contains(e.target) && e.target !== display) closePopup(); };
+      setTimeout(() => document.addEventListener('click', outsideHandler), 0);
+    }
+
+    display.addEventListener('click', e => {
+      e.stopPropagation();
+      popup.classList.contains('open') ? closePopup() : openPopup();
+    });
+
+    dateInput.addEventListener('change', () => {
+      const val = dateInput.value || null;
+      saveStatusField(key, val);
+      updateDisplay(val);
+      closePopup();
+    });
+
+    nvtBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      saveStatusField(key, 'n.v.t.');
+      updateDisplay('n.v.t.');
+      closePopup();
+    });
+
+    wrap.appendChild(display);
+    wrap.appendChild(popup);
   } else if (type === 'yn') {
     const sel = document.createElement('select');
     sel.className = 'status-yn-select';
-    ['', 'Ja', 'Nee'].forEach(opt => {
+    [['', '—'], ['ja', 'Ja'], ['nee', 'Nee']].forEach(([val, label]) => {
       const o = document.createElement('option');
-      o.value = opt; o.textContent = opt || '—';
-      if ((value || '') === opt) o.selected = true;
+      o.value = val; o.textContent = label;
+      if ((value || '') === val) o.selected = true;
       sel.appendChild(o);
     });
     sel.onchange = () => saveStatusField(key, sel.value || null);
@@ -358,7 +477,8 @@ function renderForm() {
   if (activeTab === 'klantstatus') {
     const grid = document.createElement('div');
     grid.className = 'status-grid';
-    STATUS_SECTIONS.forEach(section => {
+    let firstBlock = null;
+    STATUS_SECTIONS.forEach((section, sIdx) => {
       const block = document.createElement('div');
       block.className = 'status-col-block';
       const titleEl = document.createElement('div');
@@ -369,6 +489,7 @@ function renderForm() {
       section.fields.forEach(f => {
         const row = document.createElement('div');
         row.className = 'status-field-row';
+        if (ALARM_CHECKS[f.key] && ALARM_CHECKS[f.key](statusData)) row.classList.add('alarm');
         const lbl = document.createElement('span');
         lbl.className = 'status-field-label';
         lbl.textContent = f.label;
@@ -376,7 +497,35 @@ function renderForm() {
         row.appendChild(renderStatusInput(f.key, statusData[f.key], f.type));
         block.appendChild(row);
       });
-      grid.appendChild(block);
+
+      if (sIdx === 0) {
+        firstBlock = block;
+      } else if (sIdx === 1) {
+        const leftGroup = document.createElement('div');
+        leftGroup.style.cssText = 'flex-shrink:0;display:flex;flex-direction:column;gap:16px;';
+        const topRow = document.createElement('div');
+        topRow.style.cssText = 'display:flex;gap:20px;';
+        topRow.appendChild(firstBlock);
+        topRow.appendChild(block);
+        leftGroup.appendChild(topRow);
+
+        const opmTitle = document.createElement('div');
+        opmTitle.className = 'status-section-title';
+        opmTitle.style.cssText = 'border-bottom:2px solid #888;color:#888;margin-bottom:6px;';
+        opmTitle.textContent = 'Opmerkingen';
+        const opmArea = document.createElement('textarea');
+        opmArea.className = 'status-opmerkingen';
+        opmArea.value = statusData.opmerkingen || '';
+        opmArea.oninput = () => saveStatusField('opmerkingen', opmArea.value || null);
+        const opmBlock = document.createElement('div');
+        opmBlock.appendChild(opmTitle);
+        opmBlock.appendChild(opmArea);
+        leftGroup.appendChild(opmBlock);
+
+        grid.appendChild(leftGroup);
+      } else {
+        grid.appendChild(block);
+      }
     });
     main.appendChild(grid);
     main.style.display = 'block';
@@ -818,6 +967,7 @@ async function init() {
     document.title = `Gegevens – ${data.klant || 'Dossier'}`;
     infoData = data.info_data ? JSON.parse(data.info_data) : {};
     statusData = data;
+    alarmSettings = JSON.parse(localStorage.getItem('alarmsettings') || '{}');
 
     renderForm();
     document.getElementById('loadingOverlay').style.display = 'none';
@@ -825,6 +975,22 @@ async function init() {
     window.location.href = 'index.html';
   }
 }
+
+function openDeleteModal() {
+  document.getElementById('deleteModalName').textContent = document.getElementById('klantName').textContent;
+  document.getElementById('deleteModal').classList.add('open');
+}
+function closeDeleteModal() {
+  document.getElementById('deleteModal').classList.remove('open');
+}
+async function confirmDelete() {
+  const btn = document.querySelector('.btn-confirm-delete');
+  btn.disabled = true; btn.textContent = 'Verwijderen...';
+  const { error } = await db.from('dossiers').delete().eq('id', dossierId);
+  if (error) { btn.disabled = false; btn.textContent = 'Verwijderen'; alert('Verwijderen mislukt: ' + error.message); return; }
+  window.location.href = 'index.html';
+}
+document.getElementById('deleteModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeDeleteModal(); });
 
 window.addEventListener('pageshow', e => { if (e.persisted) window.location.reload(); });
 init();

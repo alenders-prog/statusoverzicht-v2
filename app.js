@@ -50,7 +50,7 @@ const COLUMN_FIELDS = {
       { label: 'Concepten akkoord',   key: 'concepten_akkoord',   type: 'date' },
       { label: 'Actie voor',          key: 'actie_voor',          type: 'date' },
     ],
-    hasOpm: false,
+    hasOpm: true,
   },
   controle: {
     fields: [
@@ -98,20 +98,21 @@ const COLUMN_FIELDS = {
       { label: 'Vergoeding ontvangen',   key: 'vergoeding_ontvangen',   type: 'date' },
       { label: 'ZOZA afgerond',          key: 'zoza_afgerond',          type: 'date' },
     ],
-    hasOpm: false,
+    hasOpm: true,
   },
 };
 
 const MAX_FIELDS = 4; // pad all cards to this many field rows for uniform height
 
-let rows = [], alarmSettings = {};
+let rows = [], alarmSettings = {}, currentFilter = 'all';
 let dragRowId = null;
 
 // ── VALUE HELPERS ──
 function hasValue(v) { return !!v && v !== 'n.v.t.'; }
 
 function formatDate(val) {
-  if (!val || val === 'n.v.t.') return '—';
+  if (!val) return '—';
+  if (val === 'n.v.t.') return 'n.v.t.';
   const d = new Date(val);
   if (isNaN(d)) return val;
   return d.toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: '2-digit' });
@@ -297,8 +298,14 @@ function isZozaOverdue(row) {
   return !!(row.beeindigd && row.beeindigd !== 'n.v.t.' && row.vergoeding_ontvangen);
 }
 
+function isDocsUrgent(row) {
+  if (row.docs_compleet === 'ja') return false;
+  return !!(row.akkoord_klanten && row.akkoord_klanten !== 'n.v.t.');
+}
+
 function countAlarms(row) {
   let count = 0;
+  if (row.gemaild === 'nee')                count++;
   if (isActieVoorOverdue(row))              count++;
   if (isBevestigdOverdue(row))              count++;
   if (isTerControleOverdue(row))            count++;
@@ -319,7 +326,52 @@ function countAlarms(row) {
   if (isInschrijvingOverdue(row))           count++;
   if (isBeeindigdOverdue(row))              count++;
   if (isZozaOverdue(row))                   count++;
+  if (isDocsUrgent(row))                    count++;
   return count;
+}
+
+const FIELD_ALARM_CHECKS = {
+  gemaild:                r => r.gemaild === 'nee',
+  bevestigd:              r => isBevestigdOverdue(r),
+  actie_voor:             r => isActieVoorOverdue(r),
+  reactie_ontvangen:      r => isReactieOverdue(r),
+  concepten_akkoord:      r => isConceptenAkkoordOverdue(r),
+  ter_controle:           r => isTerControleOverdue(r),
+  antwoord:               r => isAntwoordOverdue(r),
+  naar_klanten:           r => isNaarKlantenOverdue(r),
+  akkoord_klanten:        r => isAkkoordKlantenOverdue(r),
+  docs_verstuurd:         r => isDocsVerstuurdOverdue(r),
+  belafspraak:            r => isBelafspraakOverdue(r),
+  rechtbank:              r => isRechtbankOverdue(r),
+  beschikking:            r => isBeschikkingOverdue(r),
+  verstuurd_klanten:      r => isVerstuurKlantenOverdue(r),
+  akkoord_klanter:        r => isAkkoordKlanterOverdue(r),
+  verstuurd_gemeente:     r => isVerstuurGemeenteOverdue(r),
+  inschrijving_ontvangen: r => isInschrijvingOverdue(r),
+  beeindigd:              r => isBeeindigdOverdue(r),
+  vergoeding_aangevraagd: r => isVergoedingAangevraagdOverdue(r),
+  vergoeding_ontvangen:   r => isVergoedingOntvangenOverdue(r),
+  zoza_afgerond:          r => isZozaOverdue(r),
+};
+
+// ── SORT ──
+let globalSort = 'alarm';
+
+function sortColRows(colRows, colId) {
+  const sort = globalSort;
+  const firstDateKey = (COLUMN_FIELDS[colId]?.fields || []).find(f => f?.type === 'date')?.key;
+  return [...colRows].sort((a, b) => {
+    if (sort === 'naam') return (a.klant || '').localeCompare(b.klant || '', 'nl');
+    if (sort === 'datum' && firstDateKey) {
+      const ta = a[firstDateKey] && a[firstDateKey] !== 'n.v.t.' ? new Date(a[firstDateKey]).getTime() : Infinity;
+      const tb = b[firstDateKey] && b[firstDateKey] !== 'n.v.t.' ? new Date(b[firstDateKey]).getTime() : Infinity;
+      return ta - tb;
+    }
+    if (a.flagged !== b.flagged) return (b.flagged ? 1 : 0) - (a.flagged ? 1 : 0);
+    const ac = countAlarms(a), bc = countAlarms(b);
+    if (ac !== bc) return bc - ac;
+    return (a.created_at ? new Date(a.created_at).getTime() : 0) - (b.created_at ? new Date(b.created_at).getTime() : 0);
+  });
 }
 
 // ── RENDER BOARD ──
@@ -328,19 +380,10 @@ function renderBoard() {
   board.innerHTML = '';
 
   COLUMNS.forEach(col => {
-    const colRows = rows
-      .filter(r => getColumn(r) === col.id)
-      .sort((a, b) => {
-        if (a.flagged !== b.flagged) return (b.flagged ? 1 : 0) - (a.flagged ? 1 : 0);
-        const ac = countAlarms(a), bc = countAlarms(b);
-        if (ac !== bc) return bc - ac;
-        const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
-        const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
-        return ta - tb;
-      });
+    const colRows = sortColRows(rows.filter(r => getColumn(r) === col.id), col.id);
 
     const colEl = document.createElement('div');
-    colEl.className = 'kanban-col';
+    colEl.className = 'kanban-col' + (col.id === 'fase1' ? ' kanban-col-wide' : '');
 
     const header = document.createElement('div');
     header.className = 'kanban-col-header';
@@ -401,6 +444,7 @@ function renderCard(row, col) {
   card.className = 'card';
   card.dataset.cardId = row.id;
   card.dataset.klant = (row.klant || '').toLowerCase();
+  card.dataset.hasAlarm = alarmCount > 0 ? '1' : '0';
   card.draggable = true;
 
   card.addEventListener('dragstart', e => {
@@ -484,14 +528,14 @@ function renderCard(row, col) {
 
     if (field.type === 'date') {
       const val = row[field.key];
-      const overdue = hasValue(val) && isOverdue(val);
+      if (FIELD_ALARM_CHECKS[field.key] && FIELD_ALARM_CHECKS[field.key](row)) fieldRow.classList.add('alarm');
 
       const lbl = document.createElement('span');
       lbl.className = 'card-field-label';
       lbl.textContent = field.label;
 
       const valEl = document.createElement('span');
-      valEl.className = 'card-field-val' + (overdue ? ' overdue' : '') + (!hasValue(val) ? ' empty' : '');
+      valEl.className = 'card-field-val' + (!val ? ' empty' : '');
       valEl.textContent = formatDate(val);
 
       fieldRow.appendChild(lbl);
@@ -499,13 +543,14 @@ function renderCard(row, col) {
 
     } else if (field.type === 'yn') {
       const val = row[field.key];
+      if (FIELD_ALARM_CHECKS[field.key] && FIELD_ALARM_CHECKS[field.key](row)) fieldRow.classList.add('alarm');
 
       const lbl = document.createElement('span');
       lbl.className = 'card-field-label';
       lbl.textContent = field.label;
 
       const valEl = document.createElement('span');
-      valEl.className = 'card-field-val' + (val === 'Ja' ? ' ja' : val === 'Nee' ? ' nee' : ' empty');
+      valEl.className = 'card-field-val' + (val === 'ja' ? ' ja' : val === 'nee' ? ' nee' : ' empty');
       valEl.textContent = val || '—';
 
       fieldRow.appendChild(lbl);
@@ -523,19 +568,14 @@ function renderCard(row, col) {
 
     } else if (field.type === 'docs_btn') {
       fieldRow.className = 'card-field-row card-field-btn-row';
-      const complete = row.docs_compleet === 'Ja';
-      const btn = document.createElement('button');
-      btn.className = 'card-status-btn' + (complete ? ' complete' : '');
-      btn.textContent = complete ? '✓ Docs compleet' : 'Docs invullen';
-      btn.addEventListener('click', async e => {
-        e.stopPropagation();
-        const newVal = row.docs_compleet === 'Ja' ? '' : 'Ja';
-        row.docs_compleet = newVal;
-        btn.className = 'card-status-btn' + (newVal === 'Ja' ? ' complete' : '');
-        btn.textContent = newVal === 'Ja' ? '✓ Docs compleet' : 'Docs invullen';
-        await db.from('dossiers').update({ docs_compleet: newVal }).eq('id', row.id);
-      });
-      fieldRow.appendChild(btn);
+      const complete = row.docs_compleet === 'ja';
+      const urgent = !complete && isDocsUrgent(row);
+      const link = document.createElement('a');
+      link.className = 'info-link-btn' + (complete ? ' complete' : urgent ? ' urgent' : '');
+      link.textContent = complete ? '✓ Docs compleet' : 'Docs invullen';
+      link.href = `info.html?id=${row.id}`;
+      link.addEventListener('click', e => e.stopPropagation());
+      fieldRow.appendChild(link);
     }
 
     fieldsWrap.appendChild(fieldRow);
@@ -555,13 +595,25 @@ function renderCard(row, col) {
   card.appendChild(body);
 
   card.addEventListener('click', () => {
-    if (row.id) window.location.href = `info.html?id=${row.id}`;
+    if (row.id) window.location.href = `info.html?id=${row.id}&tab=klantstatus`;
   });
 
   return card;
 }
 
-// ── SEARCH FILTER ──
+// ── SEARCH / ALARM FILTER ──
+function setSort(val) {
+  globalSort = val;
+  renderBoard();
+}
+
+function setFilter(type, btn) {
+  currentFilter = type;
+  document.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterCards(document.getElementById('searchInput').value);
+}
+
 function filterCards(query) {
   const q = (query || '').trim().toLowerCase();
   COLUMNS.forEach(col => {
@@ -571,7 +623,9 @@ function filterCards(query) {
     const cards = cardsWrap.querySelectorAll('.card');
     let visible = 0;
     cards.forEach(card => {
-      const match = !q || (card.dataset.klant || '').includes(q);
+      const matchSearch = !q || (card.dataset.klant || '').includes(q);
+      const matchFilter = currentFilter !== 'alarm' || card.dataset.hasAlarm === '1';
+      const match = matchSearch && matchFilter;
       card.style.display = match ? '' : 'none';
       if (match) visible++;
     });

@@ -60,6 +60,8 @@ header .subtitle { font-size: 0.7rem; opacity: 0.5; letter-spacing: 0.12em; text
 /* ── SEARCH ── */
 .search-box { display: flex; align-items: center; gap: 6px; background: white; border: 1.5px solid var(--rule); border-radius: 3px; padding: 6px 12px; min-width: 220px; }
 .search-box input { border: none; outline: none; font-family: 'DM Mono', monospace; font-size: 0.75rem; background: transparent; width: 100%; color: var(--ink); }
+.search-clear { border: none; background: none; cursor: pointer; color: #aaa; font-size: 1rem; line-height: 1; padding: 0; display: flex; align-items: center; flex-shrink: 0; }
+.search-clear:hover { color: var(--ink); }
 
 /* ── LOADING ── */
 #loadingOverlay { position: fixed; inset: 0; background: var(--paper); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; z-index: 999; }
@@ -80,12 +82,15 @@ header .subtitle { font-size: 0.7rem; opacity: 0.5; letter-spacing: 0.12em; text
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
 /* ── KANBAN BOARD ── */
-.kanban-wrapper { display: flex; overflow-x: auto; gap: 14px; padding: 20px 28px 28px; min-height: calc(100vh - 64px); align-items: flex-start; }
+.kanban-wrapper { display: flex; overflow-x: auto; gap: 14px; padding: 20px 28px 28px; min-height: calc(100vh - 116px); align-items: stretch; }
 .kanban-col { flex: 0 0 280px; width: 280px; background: var(--cream); border-radius: 10px; display: flex; flex-direction: column; }
+.kanban-col.kanban-col-wide { flex: 0 0 868px; width: 868px; }
+.kanban-col.kanban-col-wide .kanban-cards { display: grid; grid-template-columns: repeat(3, 1fr); align-items: start; align-content: start; }
 .kanban-col-header { padding: 11px 14px 10px; border-radius: 10px 10px 0 0; display: flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 2; }
 .kanban-col-header h2 { font-family: 'Fraunces', serif; font-size: 0.9rem; font-weight: 600; color: white; letter-spacing: 0.01em; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kanban-col-count { font-family: 'DM Mono', monospace; font-size: 0.65rem; background: rgba(255,255,255,0.22); color: white; border-radius: 20px; padding: 2px 8px; letter-spacing: 0.04em; white-space: nowrap; }
-.kanban-cards { padding: 10px 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.toolbar-sort { font-family: 'DM Mono', monospace; font-size: 0.72rem; background: white; color: var(--ink); border: 1.5px solid var(--rule); border-radius: 3px; padding: 5px 10px; cursor: pointer; outline: none; }
+.kanban-cards { padding: 10px 10px 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
 
 /* ── CARD EMPTY STATE ── */
 .kanban-empty { font-size: 0.68rem; color: #aaa; text-align: center; padding: 20px 12px; letter-spacing: 0.04em; }
@@ -119,7 +124,7 @@ header .subtitle { font-size: 0.7rem; opacity: 0.5; letter-spacing: 0.12em; text
 .card-field-row { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 0.66rem; min-height: 17px; }
 .card-field-label { color: #888; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; }
 .card-field-val { font-family: 'DM Mono', monospace; color: var(--ink); white-space: nowrap; flex-shrink: 0; }
-.card-field-val.overdue { color: var(--accent); font-weight: 500; }
+.card-field-row.alarm { background: #ffd5d5; border-radius: 2px; }
 .card-field-val.empty { color: transparent; }
 .card-field-val.ja { color: #1a6e4a; font-weight: 500; }
 .card-field-val.nee { color: var(--accent); }
@@ -142,6 +147,11 @@ header .subtitle { font-size: 0.7rem; opacity: 0.5; letter-spacing: 0.12em; text
 
 /* ── TABLE (from old project, for settings.html compatibility) ── */
 .toolbar { padding: 12px 32px; background: var(--cream); border-bottom: 1px solid var(--rule); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.view-toggle { display: flex; border: 1.5px solid var(--rule); border-radius: 4px; overflow: hidden; }
+.view-btn { background: white; border: none; cursor: pointer; padding: 5px 10px; color: #aaa; display: flex; align-items: center; transition: all 0.15s; }
+.view-btn:hover { background: var(--cream); color: var(--ink); }
+.view-btn.active { background: var(--ink); color: white; }
+.view-btn + .view-btn { border-left: 1.5px solid var(--rule); }
 .filter-tag { font-size: 0.68rem; padding: 5px 12px; border-radius: 20px; border: 1.5px solid var(--rule); cursor: pointer; background: white; letter-spacing: 0.04em; transition: all 0.15s; color: var(--ink); font-family: 'DM Mono', monospace; }
 .filter-tag:hover, .filter-tag.active { background: var(--ink); color: white; border-color: var(--ink); }
 .record-count { font-size: 0.68rem; opacity: 0.5; margin-left: auto; }
