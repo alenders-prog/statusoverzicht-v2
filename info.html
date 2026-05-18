@@ -27,7 +27,7 @@
   .sync.saving { opacity: 1; color: #6ecfa0; }
   .sync.error { opacity: 1; color: var(--accent); }
 
-  main { max-width: 900px; margin: 0 auto; padding: 36px 24px; display: none; }
+  main { max-width: none; margin: 0; padding: 28px 32px; display: none; }
 
   /* ── TABS ── */
   .tab-bar { display: flex; gap: 8px; margin-bottom: 28px; }
@@ -36,8 +36,8 @@
   .tab-btn:hover:not(.active) { background: var(--cream); }
 
   /* ── STATUS TAB ── */
-  .status-grid { display: flex; flex-wrap: wrap; gap: 28px 40px; }
-  .status-col-block { min-width: 220px; flex: 1; max-width: 300px; }
+  .status-grid { display: flex; flex-wrap: nowrap; gap: 20px; overflow-x: auto; padding-bottom: 16px; align-items: flex-start; }
+  .status-col-block { flex-shrink: 0; width: 200px; }
 
   /* ── STATUS COLUMN ── */
   .status-section { margin-bottom: 18px; }
