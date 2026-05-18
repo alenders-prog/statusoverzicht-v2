@@ -27,7 +27,17 @@
   .sync.saving { opacity: 1; color: #6ecfa0; }
   .sync.error { opacity: 1; color: var(--accent); }
 
-  main { max-width: 1380px; margin: 0 auto; padding: 36px 24px; display: none; }
+  main { max-width: 900px; margin: 0 auto; padding: 36px 24px; display: none; }
+
+  /* ── TABS ── */
+  .tab-bar { display: flex; gap: 8px; margin-bottom: 28px; }
+  .tab-btn { font-family: 'DM Mono', monospace; font-size: 0.72rem; padding: 7px 20px; border: 1.5px solid var(--rule); border-radius: 3px; cursor: pointer; background: white; color: var(--ink); letter-spacing: 0.06em; transition: all 0.15s; }
+  .tab-btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .tab-btn:hover:not(.active) { background: var(--cream); }
+
+  /* ── STATUS TAB ── */
+  .status-grid { display: flex; flex-wrap: wrap; gap: 28px 40px; }
+  .status-col-block { min-width: 220px; flex: 1; max-width: 300px; }
 
   /* ── STATUS COLUMN ── */
   .status-section { margin-bottom: 18px; }
@@ -189,6 +199,7 @@ const params = new URLSearchParams(window.location.search);
 const dossierId = params.get('id');
 let infoData = {}, statusData = {};
 let saveTimer = null, statusSaveTimer = null, statusSaveQueue = {};
+let activeTab = 'klantgegevens';
 
 function setSyncStatus(state) {
   const el = document.getElementById('syncStatus');
@@ -327,6 +338,47 @@ const KLANT_FIELDS = [
 function renderForm() {
   const main = document.getElementById('mainContent');
   main.innerHTML = '';
+
+  // ── Tab bar ──
+  const tabBar = document.createElement('div');
+  tabBar.className = 'tab-bar';
+  [['klantgegevens', '1. Klantgegevens'], ['klantstatus', '2. Klantstatus']].forEach(([id, label]) => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (activeTab === id ? ' active' : '');
+    btn.textContent = label;
+    btn.onclick = () => { activeTab = id; renderForm(); };
+    tabBar.appendChild(btn);
+  });
+  main.appendChild(tabBar);
+
+  if (activeTab === 'klantstatus') {
+    const grid = document.createElement('div');
+    grid.className = 'status-grid';
+    STATUS_SECTIONS.forEach(section => {
+      const block = document.createElement('div');
+      block.className = 'status-col-block';
+      const titleEl = document.createElement('div');
+      titleEl.className = 'status-section-title';
+      titleEl.style.cssText = `border-bottom:2px solid ${section.color};color:${section.color};margin-bottom:4px;`;
+      titleEl.textContent = section.title;
+      block.appendChild(titleEl);
+      section.fields.forEach(f => {
+        const row = document.createElement('div');
+        row.className = 'status-field-row';
+        const lbl = document.createElement('span');
+        lbl.className = 'status-field-label';
+        lbl.textContent = f.label;
+        row.appendChild(lbl);
+        row.appendChild(renderStatusInput(f.key, statusData[f.key], f.type));
+        block.appendChild(row);
+      });
+      grid.appendChild(block);
+    });
+    main.appendChild(grid);
+    main.style.display = 'block';
+    return;
+  }
+
   const naamA = (infoData._klant && infoData._klant.naam_a) || 'Partner 1';
   const naamB = (infoData._klant && infoData._klant.naam_b) || 'Partner 2';
 
@@ -696,39 +748,8 @@ function renderForm() {
     }
   });
 
-  // ── STATUS COLUMN ──
-  const statusCol = document.createElement('div');
-  statusCol.style.cssText = 'flex-shrink:0;width:240px;';
-
-  STATUS_SECTIONS.forEach(section => {
-    const sectionDiv = document.createElement('div');
-    sectionDiv.className = 'status-section';
-
-    const titleEl = document.createElement('div');
-    titleEl.className = 'status-section-title';
-    titleEl.style.cssText = `border-bottom:2px solid ${section.color};color:${section.color};`;
-    titleEl.textContent = section.title;
-    sectionDiv.appendChild(titleEl);
-
-    section.fields.forEach(f => {
-      const row = document.createElement('div');
-      row.className = 'status-field-row';
-
-      const lbl = document.createElement('span');
-      lbl.className = 'status-field-label';
-      lbl.textContent = f.label;
-
-      row.appendChild(lbl);
-      row.appendChild(renderStatusInput(f.key, statusData[f.key], f.type));
-      sectionDiv.appendChild(row);
-    });
-
-    statusCol.appendChild(sectionDiv);
-  });
-
   layout.appendChild(midCol);
   layout.appendChild(rightCol);
-  layout.appendChild(statusCol);
   main.appendChild(layout);
   main.style.display = 'block';
 
