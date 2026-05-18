@@ -45,8 +45,9 @@
   .status-field-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 32px; border-bottom: 1px solid var(--rule); font-size: 0.68rem; }
   .status-field-label { color: #666; white-space: nowrap; flex-shrink: 0; }
   .status-field-input { display: flex; align-items: center; gap: 4px; }
-  .status-date-input { border: none; border-bottom: 1px solid var(--rule); outline: none; font-family: 'DM Mono', monospace; font-size: 0.68rem; background: transparent; color: var(--ink); padding: 1px 2px; width: 102px; cursor: pointer; }
-  .status-date-input:focus { border-bottom-color: var(--accent); }
+  .status-date-input { border: none; border-bottom: 1px solid var(--rule); outline: none; font-family: 'DM Mono', monospace; font-size: 0.68rem; background: transparent; color: transparent; padding: 1px 2px; width: 102px; cursor: pointer; }
+  .status-date-input.has-value { color: var(--ink); }
+  .status-date-input:focus { color: var(--ink); border-bottom-color: var(--accent); }
   .status-yn-select { border: none; border-bottom: 1px solid var(--rule); outline: none; font-family: 'DM Mono', monospace; font-size: 0.68rem; background: transparent; color: var(--ink); padding: 1px 2px; cursor: pointer; -webkit-appearance: none; appearance: none; width: 60px; }
   .status-nvt-badge { font-size: 0.62rem; color: #999; font-style: italic; }
   .status-nvt-clear { border: none; background: none; cursor: pointer; color: #bbb; font-size: 0.85rem; line-height: 1; padding: 0 2px; }
@@ -289,9 +290,12 @@ function renderStatusInput(key, value, type) {
     } else {
       const input = document.createElement('input');
       input.type = 'date';
-      input.className = 'status-date-input';
+      input.className = 'status-date-input' + (value ? ' has-value' : '');
       input.value = value || '';
-      input.onchange = () => saveStatusField(key, input.value || null);
+      input.onchange = () => {
+        input.classList.toggle('has-value', !!input.value);
+        saveStatusField(key, input.value || null);
+      };
       wrap.appendChild(input);
     }
   } else if (type === 'yn') {

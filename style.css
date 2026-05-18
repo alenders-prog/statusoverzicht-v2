@@ -120,7 +120,7 @@ header .subtitle { font-size: 0.7rem; opacity: 0.5; letter-spacing: 0.12em; text
 .card-field-label { color: #888; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; }
 .card-field-val { font-family: 'DM Mono', monospace; color: var(--ink); white-space: nowrap; flex-shrink: 0; }
 .card-field-val.overdue { color: var(--accent); font-weight: 500; }
-.card-field-val.empty { color: #ccc; }
+.card-field-val.empty { color: transparent; }
 .card-field-val.ja { color: #1a6e4a; font-weight: 500; }
 .card-field-val.nee { color: var(--accent); }
 .card-field-btn-row { justify-content: flex-start; }
