@@ -27,7 +27,20 @@
   .sync.saving { opacity: 1; color: #6ecfa0; }
   .sync.error { opacity: 1; color: var(--accent); }
 
-  main { max-width: 860px; margin: 0 auto; padding: 36px 24px; display: none; }
+  main { max-width: 1380px; margin: 0 auto; padding: 36px 24px; display: none; }
+
+  /* ── STATUS COLUMN ── */
+  .status-section { margin-bottom: 18px; }
+  .status-section-title { font-family: 'Fraunces', serif; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; padding-bottom: 5px; margin-bottom: 0; }
+  .status-field-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--rule); font-size: 0.68rem; }
+  .status-field-label { color: #666; white-space: nowrap; flex-shrink: 0; }
+  .status-field-input { display: flex; align-items: center; gap: 4px; }
+  .status-date-input { border: none; border-bottom: 1px solid var(--rule); outline: none; font-family: 'DM Mono', monospace; font-size: 0.68rem; background: transparent; color: var(--ink); padding: 1px 2px; width: 102px; cursor: pointer; }
+  .status-date-input:focus { border-bottom-color: var(--accent); }
+  .status-yn-select { border: none; border-bottom: 1px solid var(--rule); outline: none; font-family: 'DM Mono', monospace; font-size: 0.68rem; background: transparent; color: var(--ink); padding: 1px 2px; cursor: pointer; -webkit-appearance: none; appearance: none; width: 60px; }
+  .status-nvt-badge { font-size: 0.62rem; color: #999; font-style: italic; }
+  .status-nvt-clear { border: none; background: none; cursor: pointer; color: #bbb; font-size: 0.85rem; line-height: 1; padding: 0 2px; }
+  .status-nvt-clear:hover { color: var(--accent); }
 
   .section { margin-bottom: 44px; }
   .section-title { font-family: 'Fraunces', serif; font-size: 0.95rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; padding-bottom: 8px; border-bottom: 2px solid var(--ink); margin-bottom: 0; }
@@ -128,10 +141,54 @@ const SECTIONS = [
   }
 ];
 
+const STATUS_SECTIONS = [
+  { title: 'Klanten 1e fase', color: '#2a5f8f', fields: [
+    { key: 'aangevraagd',  label: 'Toevoeging aangevraagd', type: 'date' },
+    { key: 'bevestigd',    label: 'Toevoeging bevestigd',   type: 'date' },
+    { key: 'gemaild',      label: 'Gemaild',                type: 'yn'   },
+    { key: 'actie_voor',   label: 'Actie voor',             type: 'date' },
+  ]},
+  { title: 'Klanten concepten', color: '#d4771a', fields: [
+    { key: 'afspraak',          label: 'Concepten verstuurd', type: 'date' },
+    { key: 'reactie_ontvangen', label: 'Reactie ontvangen',  type: 'date' },
+    { key: 'concepten_akkoord', label: 'Concepten akkoord',  type: 'date' },
+  ]},
+  { title: 'Controle Advocaat', color: '#1a6e4a', fields: [
+    { key: 'ter_controle', label: 'Ter controle', type: 'date' },
+    { key: 'antwoord',     label: 'Antwoord',     type: 'date' },
+    { key: 'naar_klanten', label: 'Naar klanten', type: 'date' },
+  ]},
+  { title: 'Getekend', color: '#7a4f1e', fields: [
+    { key: 'akkoord_klanten', label: 'Klanten getekend', type: 'date' },
+    { key: 'docs_ontvangen',  label: 'Docs ontvangen',   type: 'date' },
+    { key: 'docs_compleet',   label: 'Docs compleet',    type: 'yn'   },
+  ]},
+  { title: 'Advocaat', color: '#5b3d8c', fields: [
+    { key: 'docs_verstuurd', label: 'Docs verstuurd', type: 'date' },
+    { key: 'belafspraak',    label: 'Belafspraak',    type: 'date' },
+    { key: 'rechtbank',      label: 'Rechtbank',      type: 'date' },
+  ]},
+  { title: 'Rechtbank', color: '#c8390a', fields: [
+    { key: 'beschikking',        label: 'Beschikking',       type: 'date' },
+    { key: 'verstuurd_klanten',  label: 'Verstuurd klanten', type: 'date' },
+    { key: 'akkoord_klanter',    label: 'Akkoord klanten',   type: 'date' },
+  ]},
+  { title: 'Gemeente', color: '#4a4a4a', fields: [
+    { key: 'verstuurd_gemeente',     label: 'Verstuurd gemeente',     type: 'date' },
+    { key: 'inschrijving_ontvangen', label: 'Inschrijving ontvangen', type: 'date' },
+  ]},
+  { title: 'Afronding', color: '#1a6e4a', fields: [
+    { key: 'beeindigd',              label: 'Ingelicht en beeindigd', type: 'date' },
+    { key: 'vergoeding_aangevraagd', label: 'Vergoeding aangevraagd', type: 'date' },
+    { key: 'vergoeding_ontvangen',   label: 'Vergoeding ontvangen',   type: 'date' },
+    { key: 'zoza_afgerond',          label: 'ZOZA afgerond',          type: 'date' },
+  ]},
+];
+
 const params = new URLSearchParams(window.location.search);
 const dossierId = params.get('id');
-let infoData = {};
-let saveTimer = null;
+let infoData = {}, statusData = {};
+let saveTimer = null, statusSaveTimer = null, statusSaveQueue = {};
 
 function setSyncStatus(state) {
   const el = document.getElementById('syncStatus');
@@ -187,6 +244,59 @@ function scheduleSave() {
   clearTimeout(saveTimer);
   setSyncStatus('saving');
   saveTimer = setTimeout(save, 700);
+}
+
+function saveStatusField(key, value) {
+  statusData[key] = value;
+  statusSaveQueue[key] = value;
+  clearTimeout(statusSaveTimer);
+  setSyncStatus('saving');
+  statusSaveTimer = setTimeout(async () => {
+    const patch = { ...statusSaveQueue };
+    statusSaveQueue = {};
+    const { error } = await db.from('dossiers').update(patch).eq('id', dossierId);
+    if (error) setSyncStatus('error'); else setSyncStatus('saved');
+  }, 700);
+}
+
+function renderStatusInput(key, value, type) {
+  const wrap = document.createElement('div');
+  wrap.className = 'status-field-input';
+
+  if (type === 'date') {
+    if (value === 'n.v.t.') {
+      const badge = document.createElement('span');
+      badge.className = 'status-nvt-badge';
+      badge.textContent = 'n.v.t.';
+      const clearBtn = document.createElement('button');
+      clearBtn.className = 'status-nvt-clear';
+      clearBtn.title = 'Verwijder n.v.t.';
+      clearBtn.textContent = '×';
+      clearBtn.onclick = () => { saveStatusField(key, null); renderForm(); };
+      wrap.appendChild(badge);
+      wrap.appendChild(clearBtn);
+    } else {
+      const input = document.createElement('input');
+      input.type = 'date';
+      input.className = 'status-date-input';
+      input.value = value || '';
+      input.onchange = () => saveStatusField(key, input.value || null);
+      wrap.appendChild(input);
+    }
+  } else if (type === 'yn') {
+    const sel = document.createElement('select');
+    sel.className = 'status-yn-select';
+    ['', 'Ja', 'Nee'].forEach(opt => {
+      const o = document.createElement('option');
+      o.value = opt; o.textContent = opt || '—';
+      if ((value || '') === opt) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.onchange = () => saveStatusField(key, sel.value || null);
+    wrap.appendChild(sel);
+  }
+
+  return wrap;
 }
 
 function setAllNvt() {
@@ -586,8 +696,39 @@ function renderForm() {
     }
   });
 
+  // ── STATUS COLUMN ──
+  const statusCol = document.createElement('div');
+  statusCol.style.cssText = 'flex-shrink:0;width:240px;';
+
+  STATUS_SECTIONS.forEach(section => {
+    const sectionDiv = document.createElement('div');
+    sectionDiv.className = 'status-section';
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'status-section-title';
+    titleEl.style.cssText = `border-bottom:2px solid ${section.color};color:${section.color};`;
+    titleEl.textContent = section.title;
+    sectionDiv.appendChild(titleEl);
+
+    section.fields.forEach(f => {
+      const row = document.createElement('div');
+      row.className = 'status-field-row';
+
+      const lbl = document.createElement('span');
+      lbl.className = 'status-field-label';
+      lbl.textContent = f.label;
+
+      row.appendChild(lbl);
+      row.appendChild(renderStatusInput(f.key, statusData[f.key], f.type));
+      sectionDiv.appendChild(row);
+    });
+
+    statusCol.appendChild(sectionDiv);
+  });
+
   layout.appendChild(midCol);
   layout.appendChild(rightCol);
+  layout.appendChild(statusCol);
   main.appendChild(layout);
   main.style.display = 'block';
 
@@ -645,12 +786,13 @@ async function init() {
     const { data: { session } } = await Promise.race([db.auth.getSession(), timeout]);
     if (!session) { window.location.href = 'index.html'; return; }
 
-    const { data, error } = await db.from('dossiers').select('klant, info_data').eq('id', dossierId).single();
+    const { data, error } = await db.from('dossiers').select('*').eq('id', dossierId).single();
     if (error || !data) { document.getElementById('loadingOverlay').innerHTML = '<p>Dossier niet gevonden.</p>'; return; }
 
     document.getElementById('klantName').textContent = data.klant || '—';
     document.title = `Gegevens – ${data.klant || 'Dossier'}`;
     infoData = data.info_data ? JSON.parse(data.info_data) : {};
+    statusData = data;
 
     renderForm();
     document.getElementById('loadingOverlay').style.display = 'none';

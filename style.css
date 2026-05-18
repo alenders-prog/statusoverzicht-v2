@@ -81,17 +81,17 @@ header .subtitle { font-size: 0.7rem; opacity: 0.5; letter-spacing: 0.12em; text
 
 /* ── KANBAN BOARD ── */
 .kanban-wrapper { display: flex; overflow-x: auto; gap: 14px; padding: 20px 28px 28px; min-height: calc(100vh - 64px); align-items: flex-start; }
-.kanban-col { flex: 0 0 280px; width: 280px; background: var(--cream); border-radius: 10px; display: flex; flex-direction: column; height: calc(100vh - 104px); overflow: hidden; }
+.kanban-col { flex: 0 0 280px; width: 280px; background: var(--cream); border-radius: 10px; display: flex; flex-direction: column; }
 .kanban-col-header { padding: 11px 14px 10px; border-radius: 10px 10px 0 0; display: flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 2; }
 .kanban-col-header h2 { font-family: 'Fraunces', serif; font-size: 0.9rem; font-weight: 600; color: white; letter-spacing: 0.01em; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kanban-col-count { font-family: 'DM Mono', monospace; font-size: 0.65rem; background: rgba(255,255,255,0.22); color: white; border-radius: 20px; padding: 2px 8px; letter-spacing: 0.04em; white-space: nowrap; }
-.kanban-cards { overflow-y: auto; flex: 1; padding: 10px 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.kanban-cards { padding: 10px 10px 12px; display: flex; flex-direction: column; gap: 8px; }
 
 /* ── CARD EMPTY STATE ── */
 .kanban-empty { font-size: 0.68rem; color: #aaa; text-align: center; padding: 20px 12px; letter-spacing: 0.04em; }
 
 /* ── CARD ── */
-.card { background: white; border: 1px solid var(--rule); border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); cursor: pointer; transition: box-shadow 0.18s, transform 0.18s; position: relative; overflow: hidden; height: 200px; display: flex; flex-direction: column; }
+.card { background: white; border: 1px solid var(--rule); border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); cursor: pointer; transition: box-shadow 0.18s, transform 0.18s; position: relative; overflow: hidden; height: 215px; display: flex; flex-direction: column; }
 .card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.12); transform: translateY(-2px); }
 .card-top-border { height: 4px; width: 100%; flex-shrink: 0; }
 .card-body { padding: 10px 12px 10px; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
@@ -109,22 +109,36 @@ header .subtitle { font-size: 0.7rem; opacity: 0.5; letter-spacing: 0.12em; text
 .flag-btn.flagged::after { background: var(--accent); border-color: var(--accent); }
 .flag-btn:hover { filter: brightness(0.9); }
 
-/* ── PROGRESS DOTS ── */
-.card-dots { display: flex; gap: 4px; align-items: center; margin-bottom: 9px; flex-shrink: 0; }
-.dot { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid #ccc; background: transparent; flex-shrink: 0; }
+/* ── PROGRESS DOTS (8 columns) ── */
+.card-dots { display: flex; gap: 3px; align-items: center; margin-bottom: 8px; flex-shrink: 0; }
+.dot { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid #ccc; background: transparent; flex-shrink: 0; }
 .dot.reached { border-color: transparent; }
 
-/* ── CARD DATES ── */
-.card-dates { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; flex-shrink: 0; }
-.card-date-row { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; font-size: 0.66rem; }
-.card-date-label { color: #888; letter-spacing: 0.04em; white-space: nowrap; }
-.card-date-val { font-family: 'DM Mono', monospace; color: var(--ink); white-space: nowrap; }
-.card-date-val.overdue { color: var(--accent); font-weight: 500; }
-.card-date-val.empty { color: #ccc; }
+/* ── CARD FIELDS ── */
+.card-fields { display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px; flex-shrink: 0; }
+.card-field-row { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 0.66rem; min-height: 17px; }
+.card-field-label { color: #888; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; }
+.card-field-val { font-family: 'DM Mono', monospace; color: var(--ink); white-space: nowrap; flex-shrink: 0; }
+.card-field-val.overdue { color: var(--accent); font-weight: 500; }
+.card-field-val.empty { color: #ccc; }
+.card-field-val.ja { color: #1a6e4a; font-weight: 500; }
+.card-field-val.nee { color: var(--accent); }
+.card-field-btn-row { justify-content: flex-start; }
+
+/* ── CARD STATUS BUTTONS (Info compleet / Docs compleet) ── */
+.card-status-btn { font-family: 'DM Mono', monospace; font-size: 0.6rem; padding: 2px 8px; border: 1.5px solid #d4771a; border-radius: 3px; color: #d4771a; background: #fce8cc; text-decoration: none; display: inline-block; letter-spacing: 0.04em; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.card-status-btn:hover { background: #d4771a; color: white; }
+.card-status-btn.complete { border-color: #1a6e4a; color: #1a6e4a; background: #d5ede2; }
+.card-status-btn.complete:hover { background: #1a6e4a; color: white; }
 
 /* ── CARD OPMERKINGEN PREVIEW ── */
-.card-opm { font-size: 0.65rem; color: #aaa; line-height: 1.4; margin-top: 4px; border-top: 1px solid #f0ede7; padding-top: 6px; word-break: break-word; flex: 1; min-height: 0; overflow: hidden; }
+.card-opm { font-size: 0.65rem; color: #aaa; line-height: 1.4; margin-top: 4px; border-top: 1px solid #f0ede7; padding-top: 5px; word-break: break-word; flex: 1; min-height: 0; overflow: hidden; }
 .card-opm.card-opm-empty { border-top-color: transparent; }
+.card-opm.card-opm-hidden { visibility: hidden; }
+
+/* ── DRAG AND DROP ── */
+.card.dragging { opacity: 0.35; transform: rotate(1deg); }
+.kanban-cards.drag-over { background: rgba(42,95,143,0.07); outline: 2px dashed rgba(42,95,143,0.3); outline-offset: -4px; border-radius: 6px; }
 
 /* ── TABLE (from old project, for settings.html compatibility) ── */
 .toolbar { padding: 12px 32px; background: var(--cream); border-bottom: 1px solid var(--rule); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }

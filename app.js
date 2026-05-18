@@ -4,35 +4,146 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const PHASES = [
-  { id: 'nieuw',     label: 'Nieuw',        color: '#4a4a4a', soft: '#e5e5e0' },
-  { id: 'ph1',       label: 'Toevoegingen', color: '#2a5f8f', soft: '#ddeaf5' },
-  { id: 'pha',       label: 'Klanten',      color: '#d4771a', soft: '#fce8cc' },
-  { id: 'ph2',       label: 'Teurlings',    color: '#1a6e4a', soft: '#d5ede2' },
-  { id: 'ph3',       label: 'Rechtbank',    color: '#7a4f1e', soft: '#edddd0' },
-  { id: 'ph4',       label: 'Gemeente',     color: '#5b3d8c', soft: '#e8dff5' },
-  { id: 'ph5',       label: 'Afhandeling',  color: '#c8390a', soft: '#f5ddd7' },
-  { id: 'afgerond',  label: 'Afgerond',     color: '#1a6e4a', soft: '#d5ede2' },
+// ── INFO COMPLETENESS ──
+const INFO_KEYS = ['leg_ouders_p1','leg_ouders_p2','leg_kinderen','huwelijkse_vw','testament','werkgever_p1','werkgever_p2','loonstroken_p1','loonstroken_p2','jaaropgave_p1','jaaropgave_p2','belasting_p1','belasting_p2','waarde_autos','pensioen_p1','pensioen_p2','saldi','saldo_polis','lijfrente','kapitaalverz','schulden','schenkingen','notarisakte','hypotheekgegevens','hypotheekakte','woz','jaaropgave_hyp','jaarcijfers_p1','jaarcijfers_p2'];
+
+function isInfoComplete(infoDataStr) {
+  if (!infoDataStr) return false;
+  try {
+    const data = JSON.parse(infoDataStr);
+    if (data._nvt) return true;
+    return INFO_KEYS.every(key => {
+      const d = data[key] || { b: 1, a: 0 };
+      return d.b !== 1 || d.a === 1;
+    });
+  } catch (e) { return false; }
+}
+
+// ── COLUMNS ──
+const COLUMNS = [
+  { id: 'fase1',     label: 'Klanten 1e fase',   color: '#2a5f8f' },
+  { id: 'concepten', label: 'Klanten concepten',  color: '#d4771a' },
+  { id: 'controle',  label: 'Controle Advocaat',  color: '#1a6e4a' },
+  { id: 'getekend',  label: 'Getekend',           color: '#7a4f1e' },
+  { id: 'advocaat',  label: 'Advocaat',           color: '#5b3d8c' },
+  { id: 'rechtbank', label: 'Rechtbank',          color: '#c8390a' },
+  { id: 'gemeente',  label: 'Gemeente',           color: '#4a4a4a' },
+  { id: 'afronding', label: 'Afronding',          color: '#1a6e4a' },
 ];
 
-// Progress phases (not nieuw/afgerond) for the dot row
-const PROGRESS_PHASES = ['ph1', 'pha', 'ph2', 'ph3', 'ph4', 'ph5'];
+// Fields per column. type: 'date' | 'yn' | 'info_btn' | 'docs_btn'
+// Note: 'afspraak' is the DB field for "Concepten verstuurd"
+const COLUMN_FIELDS = {
+  fase1: {
+    fields: [
+      { label: 'Toevoeging bevestigd', key: 'bevestigd',  type: 'date' },
+      { label: 'Gemaild',              key: 'gemaild',     type: 'yn'   },
+      {                                                     type: 'info_btn' },
+      { label: 'Actie voor',           key: 'actie_voor', type: 'date' },
+    ],
+    hasOpm: true,
+  },
+  concepten: {
+    fields: [
+      { label: 'Concepten verstuurd', key: 'afspraak',            type: 'date' },
+      { label: 'Reactie ontvangen',   key: 'reactie_ontvangen',   type: 'date' },
+      { label: 'Concepten akkoord',   key: 'concepten_akkoord',   type: 'date' },
+      { label: 'Actie voor',          key: 'actie_voor',          type: 'date' },
+    ],
+    hasOpm: false,
+  },
+  controle: {
+    fields: [
+      { label: 'Ter controle', key: 'ter_controle', type: 'date' },
+      { label: 'Antwoord',     key: 'antwoord',     type: 'date' },
+      { label: 'Naar klanten', key: 'naar_klanten', type: 'date' },
+    ],
+    hasOpm: true,
+  },
+  getekend: {
+    fields: [
+      { label: 'Klanten getekend', key: 'akkoord_klanten', type: 'date' },
+      { label: 'Docs ontvangen',   key: 'docs_ontvangen',  type: 'date' },
+      {                                                      type: 'docs_btn' },
+    ],
+    hasOpm: true,
+  },
+  advocaat: {
+    fields: [
+      { label: 'Docs verstuurd', key: 'docs_verstuurd', type: 'date' },
+      { label: 'Belafspraak',    key: 'belafspraak',    type: 'date' },
+      { label: 'Rechtbank',      key: 'rechtbank',      type: 'date' },
+    ],
+    hasOpm: true,
+  },
+  rechtbank: {
+    fields: [
+      { label: 'Beschikking',       key: 'beschikking',       type: 'date' },
+      { label: 'Verstuurd klanten', key: 'verstuurd_klanten', type: 'date' },
+      { label: 'Akkoord klanten',   key: 'akkoord_klanter',   type: 'date' },
+    ],
+    hasOpm: true,
+  },
+  gemeente: {
+    fields: [
+      { label: 'Verstuurd gemeente',     key: 'verstuurd_gemeente',    type: 'date' },
+      { label: 'Inschrijving ontvangen', key: 'inschrijving_ontvangen', type: 'date' },
+    ],
+    hasOpm: true,
+  },
+  afronding: {
+    fields: [
+      { label: 'Ingelicht en beeindigd', key: 'beeindigd',              type: 'date' },
+      { label: 'Vergoeding aangevraagd', key: 'vergoeding_aangevraagd', type: 'date' },
+      { label: 'Vergoeding ontvangen',   key: 'vergoeding_ontvangen',   type: 'date' },
+      { label: 'ZOZA afgerond',          key: 'zoza_afgerond',          type: 'date' },
+    ],
+    hasOpm: false,
+  },
+};
+
+const MAX_FIELDS = 4; // pad all cards to this many field rows for uniform height
 
 let rows = [], alarmSettings = {};
+let dragRowId = null;
 
-// ── PHASE DETECTION ──
+// ── VALUE HELPERS ──
 function hasValue(v) { return !!v && v !== 'n.v.t.'; }
 
-function getPhase(row) {
-  if (hasValue(row.zoza_afgerond))                                                                              return 'afgerond';
-  if (hasValue(row.beeindigd) || hasValue(row.vergoeding_aangevraagd) || hasValue(row.vergoeding_ontvangen))   return 'ph5';
-  if (hasValue(row.inschrijving_ontvangen) || hasValue(row.verstuurd_gemeente))                                 return 'ph4';
-  if (hasValue(row.akkoord_klanter) || hasValue(row.verstuurd_klanten) || hasValue(row.beschikking) ||
-      hasValue(row.rechtbank) || hasValue(row.belafspraak) || hasValue(row.docs_verstuurd))                     return 'ph3';
-  if (hasValue(row.akkoord_klanten) || hasValue(row.naar_klanten) || hasValue(row.antwoord) || hasValue(row.ter_controle)) return 'ph2';
-  if (hasValue(row.concepten_akkoord) || hasValue(row.reactie_ontvangen) || hasValue(row.datum_afspraak) || hasValue(row.actie_voor)) return 'pha';
-  if (hasValue(row.bevestigd) || hasValue(row.aangevraagd))                                                    return 'ph1';
-  return 'nieuw';
+function formatDate(val) {
+  if (!val || val === 'n.v.t.') return '—';
+  const d = new Date(val);
+  if (isNaN(d)) return val;
+  return d.toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: '2-digit' });
+}
+
+function isOverdue(val) {
+  if (!val || val === 'n.v.t.') return false;
+  const d = new Date(val);
+  if (isNaN(d)) return false;
+  return d < new Date();
+}
+
+// ── COLUMN PLACEMENT ──
+// Initial column is determined by the last-filled date field, checking from last to first column.
+function getInitialColumn(row) {
+  if (hasValue(row.zoza_afgerond) || hasValue(row.vergoeding_ontvangen) ||
+      hasValue(row.vergoeding_aangevraagd) || hasValue(row.beeindigd))            return 'afronding';
+  if (hasValue(row.inschrijving_ontvangen) || hasValue(row.verstuurd_gemeente))   return 'gemeente';
+  if (hasValue(row.akkoord_klanter) || hasValue(row.verstuurd_klanten) ||
+      hasValue(row.beschikking))                                                   return 'rechtbank';
+  if (hasValue(row.rechtbank) || hasValue(row.belafspraak) ||
+      hasValue(row.docs_verstuurd))                                                return 'advocaat';
+  if (hasValue(row.docs_ontvangen) || hasValue(row.akkoord_klanten))              return 'getekend';
+  if (hasValue(row.naar_klanten) || hasValue(row.antwoord) ||
+      hasValue(row.ter_controle))                                                  return 'controle';
+  if (hasValue(row.concepten_akkoord) || hasValue(row.reactie_ontvangen) ||
+      hasValue(row.afspraak))                                                      return 'concepten';
+  return 'fase1';
+}
+
+function getColumn(row) {
+  return row.kanban_column || getInitialColumn(row);
 }
 
 // ── ALARM CHECKS ──
@@ -211,41 +322,14 @@ function countAlarms(row) {
   return count;
 }
 
-// ── DATE HELPERS ──
-function formatDate(val) {
-  if (!val || val === 'n.v.t.') return '—';
-  const d = new Date(val);
-  if (isNaN(d)) return val;
-  return d.toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
-function isOverdue(val) {
-  if (!val || val === 'n.v.t.') return false;
-  const d = new Date(val);
-  if (isNaN(d)) return false;
-  return d < new Date();
-}
-
-// ── KEY DATES PER PHASE ──
-const PHASE_DATE_FIELDS = {
-  nieuw:    [],
-  ph1:      [{ label: 'Aangevraagd', key: 'aangevraagd' }, { label: 'Bevestigd', key: 'bevestigd' }],
-  pha:      [{ label: 'Afspraak datum', key: 'datum_afspraak' }, { label: 'Actie voor', key: 'actie_voor' }, { label: 'Concepten akkoord', key: 'concepten_akkoord' }],
-  ph2:      [{ label: 'Ter controle', key: 'ter_controle' }, { label: 'Antwoord', key: 'antwoord' }, { label: 'Naar klanten', key: 'naar_klanten' }],
-  ph3:      [{ label: 'Rechtbank', key: 'rechtbank' }, { label: 'Beschikking', key: 'beschikking' }],
-  ph4:      [{ label: 'Verstuurd gemeente', key: 'verstuurd_gemeente' }, { label: 'Inschrijving ontvangen', key: 'inschrijving_ontvangen' }],
-  ph5:      [{ label: 'Beeindigd', key: 'beeindigd' }, { label: 'Vergoeding ontvangen', key: 'vergoeding_ontvangen' }, { label: 'ZOZA afgerond', key: 'zoza_afgerond' }],
-  afgerond: [{ label: 'ZOZA afgerond', key: 'zoza_afgerond' }],
-};
-
 // ── RENDER BOARD ──
 function renderBoard() {
   const board = document.getElementById('kanbanBoard');
   board.innerHTML = '';
 
-  PHASES.forEach(phase => {
-    const phaseRows = rows
-      .filter(r => getPhase(r) === phase.id)
+  COLUMNS.forEach(col => {
+    const colRows = rows
+      .filter(r => getColumn(r) === col.id)
       .sort((a, b) => {
         if (a.flagged !== b.flagged) return (b.flagged ? 1 : 0) - (a.flagged ? 1 : 0);
         const ac = countAlarms(a), bc = countAlarms(b);
@@ -255,64 +339,90 @@ function renderBoard() {
         return ta - tb;
       });
 
-    const col = document.createElement('div');
-    col.className = 'kanban-col';
-    col.dataset.phase = phase.id;
+    const colEl = document.createElement('div');
+    colEl.className = 'kanban-col';
 
     const header = document.createElement('div');
     header.className = 'kanban-col-header';
-    header.style.background = phase.color;
+    header.style.background = col.color;
 
     const title = document.createElement('h2');
-    title.textContent = phase.label;
+    title.textContent = col.label;
 
     const countBadge = document.createElement('span');
     countBadge.className = 'kanban-col-count';
-    countBadge.dataset.countEl = phase.id;
-    countBadge.textContent = phaseRows.length;
+    countBadge.textContent = colRows.length;
 
     header.appendChild(title);
     header.appendChild(countBadge);
-    col.appendChild(header);
+    colEl.appendChild(header);
 
     const cardsWrap = document.createElement('div');
     cardsWrap.className = 'kanban-cards';
-    cardsWrap.dataset.cardsWrap = phase.id;
+    cardsWrap.dataset.colId = col.id;
 
-    if (phaseRows.length === 0) {
+    cardsWrap.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      cardsWrap.classList.add('drag-over');
+    });
+    cardsWrap.addEventListener('dragleave', e => {
+      if (!cardsWrap.contains(e.relatedTarget)) cardsWrap.classList.remove('drag-over');
+    });
+    cardsWrap.addEventListener('drop', async e => {
+      e.preventDefault();
+      cardsWrap.classList.remove('drag-over');
+      if (!dragRowId) return;
+      const row = rows.find(r => r.id === dragRowId);
+      if (!row || getColumn(row) === col.id) return;
+      row.kanban_column = col.id;
+      renderBoard();
+      await db.from('dossiers').update({ kanban_column: col.id }).eq('id', row.id);
+    });
+
+    if (colRows.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'kanban-empty';
-      empty.dataset.emptyPlaceholder = phase.id;
       empty.textContent = 'Geen dossiers';
       cardsWrap.appendChild(empty);
     } else {
-      phaseRows.forEach(row => {
-        cardsWrap.appendChild(renderCard(row, phase));
-      });
+      colRows.forEach(row => cardsWrap.appendChild(renderCard(row, col)));
     }
 
-    col.appendChild(cardsWrap);
-    board.appendChild(col);
+    colEl.appendChild(cardsWrap);
+    board.appendChild(colEl);
   });
 }
 
-function renderCard(row, phase) {
+// ── RENDER CARD ──
+function renderCard(row, col) {
   const alarmCount = countAlarms(row);
   const card = document.createElement('div');
   card.className = 'card';
   card.dataset.cardId = row.id;
   card.dataset.klant = (row.klant || '').toLowerCase();
+  card.draggable = true;
+
+  card.addEventListener('dragstart', e => {
+    dragRowId = row.id;
+    setTimeout(() => card.classList.add('dragging'), 0);
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  card.addEventListener('dragend', () => {
+    card.classList.remove('dragging');
+    dragRowId = null;
+  });
 
   // Colored top border
   const topBorder = document.createElement('div');
   topBorder.className = 'card-top-border';
-  topBorder.style.background = phase.color;
+  topBorder.style.background = col.color;
   card.appendChild(topBorder);
 
   const body = document.createElement('div');
   body.className = 'card-body';
 
-  // Header row: name + badges
+  // ── Header: name + alarm badge + flag button ──
   const headerRow = document.createElement('div');
   headerRow.className = 'card-header';
 
@@ -334,76 +444,116 @@ function renderCard(row, phase) {
   flagBtn.className = 'flag-btn' + (row.flagged ? ' flagged' : '');
   flagBtn.title = row.flagged ? 'Markering verwijderen' : 'Markeren';
   flagBtn.addEventListener('click', e => { e.stopPropagation(); toggleFlag(row, flagBtn); });
-
   badges.appendChild(flagBtn);
+
   headerRow.appendChild(name);
   headerRow.appendChild(badges);
   body.appendChild(headerRow);
 
-  // Progress dots: ph1 pha ph2 ph3 ph4 ph5
-  const phaseOrder = ['nieuw','ph1','pha','ph2','ph3','ph4','ph5','afgerond'];
-  const currentPhaseIndex = phaseOrder.indexOf(phase.id);
-
+  // ── Progress dots (one per column) ──
+  const colOrder = COLUMNS.map(c => c.id);
+  const currentIdx = colOrder.indexOf(col.id);
   const dots = document.createElement('div');
   dots.className = 'card-dots';
-
-  PROGRESS_PHASES.forEach(pid => {
-    const pIdx = phaseOrder.indexOf(pid);
-    const phaseInfo = PHASES.find(p => p.id === pid);
+  COLUMNS.forEach((c, i) => {
     const dot = document.createElement('span');
-    dot.className = 'dot' + (currentPhaseIndex >= pIdx ? ' reached' : '');
-    if (currentPhaseIndex >= pIdx && phaseInfo) {
-      dot.style.background = phaseInfo.color;
-    }
+    dot.className = 'dot' + (i <= currentIdx ? ' reached' : '');
+    if (i <= currentIdx) dot.style.background = c.color;
     dots.appendChild(dot);
   });
   body.appendChild(dots);
 
-  // Key dates for this phase — always render 3 slots for uniform card height
-  const dateFields = PHASE_DATE_FIELDS[phase.id] || [];
-  const paddedFields = dateFields.slice();
-  while (paddedFields.length < 3) paddedFields.push(null);
+  // ── Column-specific field rows (always padded to MAX_FIELDS) ──
+  const colDef = COLUMN_FIELDS[col.id] || { fields: [], hasOpm: false };
+  const padded = colDef.fields.slice();
+  while (padded.length < MAX_FIELDS) padded.push(null);
 
-  const datesWrap = document.createElement('div');
-  datesWrap.className = 'card-dates';
-  paddedFields.forEach(field => {
-    const dateRow = document.createElement('div');
-    dateRow.className = 'card-date-row';
+  const fieldsWrap = document.createElement('div');
+  fieldsWrap.className = 'card-fields';
+
+  padded.forEach(field => {
+    const fieldRow = document.createElement('div');
+    fieldRow.className = 'card-field-row';
 
     if (!field) {
-      dateRow.style.visibility = 'hidden';
-      dateRow.appendChild(document.createElement('span'));
-      dateRow.appendChild(document.createElement('span'));
-    } else {
+      fieldRow.style.visibility = 'hidden';
+      fieldRow.appendChild(document.createElement('span'));
+      fieldsWrap.appendChild(fieldRow);
+      return;
+    }
+
+    if (field.type === 'date') {
       const val = row[field.key];
-      const formatted = formatDate(val);
       const overdue = hasValue(val) && isOverdue(val);
 
       const lbl = document.createElement('span');
-      lbl.className = 'card-date-label';
+      lbl.className = 'card-field-label';
       lbl.textContent = field.label;
 
       const valEl = document.createElement('span');
-      valEl.className = 'card-date-val' + (overdue ? ' overdue' : '') + (!hasValue(val) ? ' empty' : '');
-      valEl.textContent = formatted;
+      valEl.className = 'card-field-val' + (overdue ? ' overdue' : '') + (!hasValue(val) ? ' empty' : '');
+      valEl.textContent = formatDate(val);
 
-      dateRow.appendChild(lbl);
-      dateRow.appendChild(valEl);
+      fieldRow.appendChild(lbl);
+      fieldRow.appendChild(valEl);
+
+    } else if (field.type === 'yn') {
+      const val = row[field.key];
+
+      const lbl = document.createElement('span');
+      lbl.className = 'card-field-label';
+      lbl.textContent = field.label;
+
+      const valEl = document.createElement('span');
+      valEl.className = 'card-field-val' + (val === 'Ja' ? ' ja' : val === 'Nee' ? ' nee' : ' empty');
+      valEl.textContent = val || '—';
+
+      fieldRow.appendChild(lbl);
+      fieldRow.appendChild(valEl);
+
+    } else if (field.type === 'info_btn') {
+      fieldRow.className = 'card-field-row card-field-btn-row';
+      const complete = isInfoComplete(row.info_data);
+      const btn = document.createElement('a');
+      btn.className = 'card-status-btn' + (complete ? ' complete' : '');
+      btn.textContent = complete ? '✓ Info compleet' : 'Info invullen';
+      btn.href = `info.html?id=${row.id}`;
+      btn.addEventListener('click', e => e.stopPropagation());
+      fieldRow.appendChild(btn);
+
+    } else if (field.type === 'docs_btn') {
+      fieldRow.className = 'card-field-row card-field-btn-row';
+      const complete = row.docs_compleet === 'Ja';
+      const btn = document.createElement('button');
+      btn.className = 'card-status-btn' + (complete ? ' complete' : '');
+      btn.textContent = complete ? '✓ Docs compleet' : 'Docs invullen';
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        const newVal = row.docs_compleet === 'Ja' ? '' : 'Ja';
+        row.docs_compleet = newVal;
+        btn.className = 'card-status-btn' + (newVal === 'Ja' ? ' complete' : '');
+        btn.textContent = newVal === 'Ja' ? '✓ Docs compleet' : 'Docs invullen';
+        await db.from('dossiers').update({ docs_compleet: newVal }).eq('id', row.id);
+      });
+      fieldRow.appendChild(btn);
     }
-    datesWrap.appendChild(dateRow);
-  });
-  body.appendChild(datesWrap);
 
-  // Opmerkingen preview — always rendered for uniform card height
-  const opm = document.createElement('div');
+    fieldsWrap.appendChild(fieldRow);
+  });
+
+  body.appendChild(fieldsWrap);
+
+  // ── Opmerkingen (always rendered; invisible for columns without it) ──
   const opmText = row.opmerkingen && row.opmerkingen.trim();
-  opm.className = 'card-opm' + (opmText ? '' : ' card-opm-empty');
-  opm.textContent = opmText ? opmText.slice(0, 80) : '';
+  const opm = document.createElement('div');
+  opm.className = 'card-opm'
+    + (!colDef.hasOpm ? ' card-opm-hidden' : '')
+    + (!opmText ? ' card-opm-empty' : '');
+  opm.textContent = opmText ? opmText.slice(0, 100) : '';
   body.appendChild(opm);
 
   card.appendChild(body);
 
-  // Click to navigate (excluding flag button)
   card.addEventListener('click', () => {
     if (row.id) window.location.href = `info.html?id=${row.id}`;
   });
@@ -414,36 +564,36 @@ function renderCard(row, phase) {
 // ── SEARCH FILTER ──
 function filterCards(query) {
   const q = (query || '').trim().toLowerCase();
-  PHASES.forEach(phase => {
-    const cardsWrap = document.querySelector(`[data-cards-wrap="${phase.id}"]`);
+  COLUMNS.forEach(col => {
+    const cardsWrap = document.querySelector(`[data-col-id="${col.id}"]`);
     if (!cardsWrap) return;
 
     const cards = cardsWrap.querySelectorAll('.card');
     let visible = 0;
-
     cards.forEach(card => {
-      const klant = card.dataset.klant || '';
-      const match = !q || klant.includes(q);
+      const match = !q || (card.dataset.klant || '').includes(q);
       card.style.display = match ? '' : 'none';
       if (match) visible++;
     });
 
-    let emptyEl = cardsWrap.querySelector('[data-empty-placeholder]');
-    if (visible === 0) {
+    let emptyEl = cardsWrap.querySelector('.kanban-empty');
+    if (visible === 0 && cards.length > 0) {
       if (!emptyEl) {
         emptyEl = document.createElement('div');
         emptyEl.className = 'kanban-empty';
-        emptyEl.dataset.emptyPlaceholder = phase.id;
         cardsWrap.appendChild(emptyEl);
       }
-      emptyEl.textContent = q ? 'Leeg' : 'Geen dossiers';
+      emptyEl.textContent = q ? 'Geen resultaten' : 'Geen dossiers';
       emptyEl.style.display = '';
-    } else {
-      if (emptyEl) emptyEl.style.display = 'none';
+    } else if (emptyEl) {
+      emptyEl.style.display = visible === 0 ? '' : 'none';
     }
 
-    const countEl = document.querySelector(`[data-count-el="${phase.id}"]`);
-    if (countEl) countEl.textContent = visible;
+    const hdr = cardsWrap.previousElementSibling;
+    if (hdr) {
+      const badge = hdr.querySelector('.kanban-col-count');
+      if (badge) badge.textContent = visible;
+    }
   });
 }
 
@@ -484,7 +634,6 @@ async function signIn() {
   const email    = document.getElementById('emailInput').value.trim();
   const password = document.getElementById('passwordInput').value;
   const btn      = document.getElementById('loginBtn');
-  const msg      = document.getElementById('loginMsg');
   if (!email || !password) { showLoginMsg('Vul e-mailadres en wachtwoord in.', true); return; }
   btn.disabled = true; btn.textContent = 'Inloggen...';
   const { error } = await db.auth.signInWithPassword({ email, password });
@@ -556,11 +705,9 @@ async function init() {
   }
 }
 
-// Keyboard shortcut
 document.getElementById('emailInput').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('passwordInput').focus(); });
 document.getElementById('passwordInput').addEventListener('keydown', e => { if (e.key === 'Enter') signIn(); });
 
-// pageshow fix: only reload if loading overlay is stuck (bfcache)
 window.addEventListener('pageshow', e => {
   if (e.persisted && document.getElementById('loadingOverlay').style.display !== 'none') {
     window.location.reload();
