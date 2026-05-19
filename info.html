@@ -66,6 +66,9 @@
   .status-date-display:hover { color: var(--accent); }
   .status-date-display.is-nvt { color: #999; font-style: italic; }
   .status-date-display.is-empty { color: transparent; }
+  .status-cal-icon { color: #bbb; cursor: pointer; flex-shrink: 0; display: none; align-items: center; margin-left: 2px; }
+  .status-cal-icon.visible { display: flex; }
+  .status-cal-icon:hover { color: var(--accent); }
   .status-picker-popup { display: none; position: absolute; right: 0; top: 100%; z-index: 200; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.18); border-radius: 3px; overflow: hidden; }
   .status-picker-popup.open { display: flex; }
   .status-picker-input { border: none; outline: none; font-family: 'DM Mono', monospace; font-size: 0.68rem; padding: 6px 8px; background: white; color: var(--ink); flex: 1; }
@@ -378,17 +381,25 @@ function renderStatusInput(key, value, type) {
 
     let outsideHandler = null;
 
+    const calIcon = document.createElement('span');
+    calIcon.className = 'status-cal-icon' + (!hasDate && !isNvt ? ' visible' : '');
+    calIcon.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="12" rx="1.5"/><path d="M1 7h14M5 1v4M11 1v4"/></svg>';
+    calIcon.addEventListener('click', e => { e.stopPropagation(); popup.classList.contains('open') ? closePopup() : openPopup(); });
+
     function updateDisplay(val) {
       if (!val) {
         display.className = 'status-date-display is-empty';
         display.textContent = 'dd-mm-jjjj';
+        calIcon.classList.add('visible');
       } else if (val === 'n.v.t.') {
         display.className = 'status-date-display is-nvt';
         display.textContent = 'n.v.t.';
+        calIcon.classList.remove('visible');
       } else {
         const d = new Date(val);
         display.className = 'status-date-display';
         display.textContent = isNaN(d.getTime()) ? val : d.toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        calIcon.classList.remove('visible');
       }
     }
 
@@ -425,6 +436,7 @@ function renderStatusInput(key, value, type) {
     });
 
     wrap.appendChild(display);
+    wrap.appendChild(calIcon);
     wrap.appendChild(popup);
   } else if (type === 'yn') {
     const sel = document.createElement('select');
