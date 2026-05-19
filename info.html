@@ -26,6 +26,10 @@
   .sync { font-size: 0.65rem; opacity: 0.4; margin-left: auto; letter-spacing: 0.05em; }
   .btn-delete-klant { font-family: 'DM Mono', monospace; font-size: 0.68rem; padding: 5px 12px; border: 1.5px solid #c8390a; border-radius: 3px; color: #c8390a; background: transparent; cursor: pointer; letter-spacing: 0.06em; transition: all 0.15s; white-space: nowrap; }
   .btn-delete-klant:hover { background: #c8390a; color: white; }
+  #undoToast { position: fixed; bottom: 24px; right: 24px; background: var(--ink); color: var(--paper); padding: 10px 14px 10px 18px; border-radius: 4px; font-size: 0.72rem; display: flex; align-items: center; gap: 14px; opacity: 0; transform: translateY(10px); transition: all 0.25s; pointer-events: none; z-index: 9999; }
+  #undoToast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  #undoBtn { font-family: 'DM Mono', monospace; font-size: 0.72rem; background: none; border: 1.5px solid rgba(255,255,255,0.4); border-radius: 3px; color: var(--paper); padding: 3px 10px; cursor: pointer; letter-spacing: 0.04em; white-space: nowrap; }
+  #undoBtn:hover { background: rgba(255,255,255,0.15); }
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: center; justify-content: center; }
   .modal-overlay.open { display: flex; }
   .modal { background: white; border-radius: 6px; padding: 32px; max-width: 400px; width: 90%; box-shadow: 0 12px 40px rgba(0,0,0,0.2); }
@@ -118,6 +122,11 @@
       <button class="btn btn-confirm-delete" onclick="confirmDelete()">Verwijderen</button>
     </div>
   </div>
+</div>
+
+<div id="undoToast">
+  <span>Klant verwijderd</span>
+  <button id="undoBtn" onclick="undoDelete()">Ongedaan maken</button>
 </div>
 
 <main id="mainContent"></main>
@@ -976,6 +985,8 @@ async function init() {
   }
 }
 
+let deleteTimer = null;
+
 function openDeleteModal() {
   document.getElementById('deleteModalName').textContent = document.getElementById('klantName').textContent;
   document.getElementById('deleteModal').classList.add('open');
@@ -983,12 +994,20 @@ function openDeleteModal() {
 function closeDeleteModal() {
   document.getElementById('deleteModal').classList.remove('open');
 }
-async function confirmDelete() {
-  const btn = document.querySelector('.btn-confirm-delete');
-  btn.disabled = true; btn.textContent = 'Verwijderen...';
-  const { error } = await db.from('dossiers').delete().eq('id', dossierId);
-  if (error) { btn.disabled = false; btn.textContent = 'Verwijderen'; alert('Verwijderen mislukt: ' + error.message); return; }
-  window.location.href = 'index.html';
+function confirmDelete() {
+  closeDeleteModal();
+  document.getElementById('undoToast').classList.add('show');
+  deleteTimer = setTimeout(async () => {
+    document.getElementById('undoToast').classList.remove('show');
+    const { error } = await db.from('dossiers').delete().eq('id', dossierId);
+    if (error) { alert('Verwijderen mislukt: ' + error.message); return; }
+    window.location.href = 'index.html';
+  }, 5000);
+}
+function undoDelete() {
+  clearTimeout(deleteTimer);
+  deleteTimer = null;
+  document.getElementById('undoToast').classList.remove('show');
 }
 document.getElementById('deleteModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeDeleteModal(); });
 

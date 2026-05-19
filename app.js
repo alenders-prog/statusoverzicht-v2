@@ -672,6 +672,25 @@ async function loadRows() {
   renderBoard();
 }
 
+function subscribeToChanges() {
+  db.channel('dossiers-realtime')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'dossiers' }, payload => {
+      if (payload.eventType === 'INSERT') {
+        if (!rows.find(r => r.id === payload.new.id)) {
+          rows.push(payload.new);
+          renderBoard();
+        }
+      } else if (payload.eventType === 'UPDATE') {
+        const idx = rows.findIndex(r => r.id === payload.new.id);
+        if (idx !== -1) { rows[idx] = payload.new; renderBoard(); }
+      } else if (payload.eventType === 'DELETE') {
+        const idx = rows.findIndex(r => r.id === payload.old.id);
+        if (idx !== -1) { rows.splice(idx, 1); renderBoard(); }
+      }
+    })
+    .subscribe();
+}
+
 async function addRow() {
   document.getElementById('loadingOverlay').style.display = 'flex';
   const { data, error } = await db.from('dossiers').insert({ klant: '' }).select().single();
@@ -725,6 +744,7 @@ async function enterApp(user) {
     }
     const loadTimeout = new Promise(resolve => setTimeout(resolve, 8000));
     await Promise.race([loadRows(), loadTimeout]);
+    subscribeToChanges();
   } finally {
     document.getElementById('loadingOverlay').style.display = 'none';
     document.getElementById('appScreen').style.display = 'block';
