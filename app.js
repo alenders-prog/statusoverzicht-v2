@@ -441,7 +441,7 @@ function renderBoard() {
 function renderCard(row, col) {
   const alarmCount = countAlarms(row);
   const card = document.createElement('div');
-  card.className = 'card';
+  card.className = 'card' + (row.zoza_afgerond && row.zoza_afgerond !== 'n.v.t.' ? ' card-done' : '');
   card.dataset.cardId = row.id;
   card.dataset.klant = (row.klant || '').toLowerCase();
   card.dataset.hasAlarm = alarmCount > 0 ? '1' : '0';
