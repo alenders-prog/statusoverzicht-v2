@@ -73,6 +73,10 @@
   .status-picker-popup.open { display: flex; }
   .status-picker-input { border: none; outline: none; font-family: 'DM Mono', monospace; font-size: 0.68rem; padding: 6px 8px; background: white; color: var(--ink); flex: 1; }
   .status-yn-select { border: none; border-bottom: 1px solid var(--rule); outline: none; font-family: 'DM Mono', monospace; font-size: 0.68rem; background: transparent; color: var(--ink); padding: 1px 2px; cursor: pointer; -webkit-appearance: none; appearance: none; width: 60px; }
+  .status-compleet-btn { font-family: 'DM Mono', monospace; font-size: 0.62rem; padding: 3px 8px; border: 1.5px solid #2a5f8f; border-radius: 3px; color: #2a5f8f; background: #e8f0f8; cursor: pointer; letter-spacing: 0.04em; transition: all 0.15s; white-space: nowrap; }
+  .status-compleet-btn:hover { background: #2a5f8f; color: white; }
+  .status-compleet-btn.complete { background: #d5ede2; border-color: #1a6e4a; color: #1a6e4a; }
+  .status-compleet-btn.complete:hover { background: #1a6e4a; color: white; }
   .nvt-btn { font-family: 'DM Mono', monospace; font-size: 0.65rem; padding: 5px 10px; border: none; border-left: 1px solid #ddd; cursor: pointer; background: var(--ink); color: var(--paper); white-space: nowrap; font-weight: 500; letter-spacing: 0.04em; }
   .nvt-btn:hover { background: #2a2825; }
   .status-field-row.alarm { background: #ffd5d5; }
@@ -199,28 +203,28 @@ const STATUS_SECTIONS = [
   { title: 'Klanten 1e fase', color: '#2a5f8f', fields: [
     { key: 'aangevraagd',  label: 'Toevoeging aangevraagd', type: 'date' },
     { key: 'bevestigd',    label: 'Toevoeging bevestigd',   type: 'date' },
-    { key: 'gemaild',      label: 'Gemaild',                type: 'yn'   },
+    { key: 'gemaild',       label: 'Klant gemaild',          type: 'yn'   },
+    { key: '_info',          label: 'Info',                  type: 'info_status'  },
     { key: 'actie_voor',   label: 'Actie voor',             type: 'date' },
+  ]},
+  { title: 'Controle Advocaat', color: '#1a6e4a', fields: [
+    { key: 'ter_controle', label: 'Ter controle', type: 'date' },
+    { key: 'antwoord',     label: 'Antwoord',     type: 'date' },
+    { key: 'naar_klanten', label: 'Verwerkt', type: 'date' },
   ]},
   { title: 'Klanten concepten', color: '#d4771a', fields: [
     { key: 'afspraak',          label: 'Concepten verstuurd', type: 'date' },
     { key: 'reactie_ontvangen', label: 'Reactie ontvangen',  type: 'date' },
     { key: 'concepten_akkoord', label: 'Concepten akkoord',  type: 'date' },
   ]},
-  { title: 'Controle Advocaat', color: '#1a6e4a', fields: [
-    { key: 'ter_controle', label: 'Ter controle', type: 'date' },
-    { key: 'antwoord',     label: 'Antwoord',     type: 'date' },
-    { key: 'naar_klanten', label: 'Naar klanten', type: 'date' },
-  ]},
   { title: 'Getekend', color: '#7a4f1e', fields: [
     { key: 'akkoord_klanten', label: 'Klanten getekend', type: 'date' },
-    { key: 'docs_ontvangen',  label: 'Docs ontvangen',   type: 'date' },
-    { key: 'docs_compleet',   label: 'Docs compleet',    type: 'yn'   },
+    { key: '_docs',            label: 'Aktes compleet',   type: 'docs_status' },
+    { key: 'docs_verstuurd',  label: 'Verstuurd Advocaat', type: 'date' },
   ]},
   { title: 'Advocaat', color: '#5b3d8c', fields: [
-    { key: 'docs_verstuurd', label: 'Docs verstuurd', type: 'date' },
-    { key: 'belafspraak',    label: 'Belafspraak',    type: 'date' },
-    { key: 'rechtbank',      label: 'Rechtbank',      type: 'date' },
+    { key: 'belafspraak', label: 'Belafspraak', type: 'date' },
+    { key: 'rechtbank',   label: 'Rechtbank',   type: 'date' },
   ]},
   { title: 'Rechtbank', color: '#c8390a', fields: [
     { key: 'beschikking',        label: 'Beschikking',       type: 'date' },
@@ -449,6 +453,30 @@ function renderStatusInput(key, value, type) {
     });
     sel.onchange = () => saveStatusField(key, sel.value || null);
     wrap.appendChild(sel);
+  } else if (type === 'info_status') {
+    const complete = (() => {
+      if (infoData._nvt) return true;
+      const keys = SECTIONS.slice(0, -1).flatMap(s => s.fields.map(f => f.key));
+      return keys.every(k => {
+        const d = infoData[k] || { b: 1, a: 0 };
+        return d.b !== 1 || d.a === 1;
+      });
+    })();
+    const btn = document.createElement('button');
+    btn.className = 'status-compleet-btn' + (complete ? ' complete' : '');
+    btn.textContent = complete ? '✓ Info compleet' : 'Info incompleet';
+    btn.onclick = () => { activeTab = 'klantgegevens'; renderForm(); };
+    wrap.appendChild(btn);
+  } else if (type === 'docs_status') {
+    const complete = SECTIONS[SECTIONS.length - 1].fields.every(f => {
+      const d = infoData[f.key] || { b: 0, a: 0 };
+      return d.b === d.a;
+    });
+    const btn = document.createElement('button');
+    btn.className = 'status-compleet-btn' + (complete ? ' complete' : '');
+    btn.textContent = complete ? '✓ Aktes compleet' : 'Aktes incompleet';
+    btn.onclick = () => { activeTab = 'klantgegevens'; renderForm(); };
+    wrap.appendChild(btn);
   }
 
   return wrap;

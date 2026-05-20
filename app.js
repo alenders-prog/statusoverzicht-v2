@@ -22,8 +22,8 @@ function isInfoComplete(infoDataStr) {
 // ── COLUMNS ──
 const COLUMNS = [
   { id: 'fase1',     label: 'Klanten 1e fase',   color: '#2a5f8f' },
-  { id: 'concepten', label: 'Klanten concepten',  color: '#d4771a' },
   { id: 'controle',  label: 'Controle Advocaat',  color: '#1a6e4a' },
+  { id: 'concepten', label: 'Klanten concepten',  color: '#d4771a' },
   { id: 'getekend',  label: 'Getekend',           color: '#7a4f1e' },
   { id: 'advocaat',  label: 'Advocaat',           color: '#5b3d8c' },
   { id: 'rechtbank', label: 'Rechtbank',          color: '#c8390a' },
@@ -37,7 +37,7 @@ const COLUMN_FIELDS = {
   fase1: {
     fields: [
       { label: 'Toevoeging bevestigd', key: 'bevestigd',  type: 'date' },
-      { label: 'Gemaild',              key: 'gemaild',     type: 'yn'   },
+      { label: 'Klant gemaild',        key: 'gemaild',     type: 'yn'   },
       {                                                     type: 'info_btn' },
       { label: 'Actie voor',           key: 'actie_voor', type: 'date' },
     ],
@@ -48,7 +48,6 @@ const COLUMN_FIELDS = {
       { label: 'Concepten verstuurd', key: 'afspraak',            type: 'date' },
       { label: 'Reactie ontvangen',   key: 'reactie_ontvangen',   type: 'date' },
       { label: 'Concepten akkoord',   key: 'concepten_akkoord',   type: 'date' },
-      { label: 'Actie voor',          key: 'actie_voor',          type: 'date' },
     ],
     hasOpm: true,
   },
@@ -56,23 +55,22 @@ const COLUMN_FIELDS = {
     fields: [
       { label: 'Ter controle', key: 'ter_controle', type: 'date' },
       { label: 'Antwoord',     key: 'antwoord',     type: 'date' },
-      { label: 'Naar klanten', key: 'naar_klanten', type: 'date' },
+      { label: 'Verwerkt', key: 'naar_klanten', type: 'date' },
     ],
     hasOpm: true,
   },
   getekend: {
     fields: [
       { label: 'Klanten getekend', key: 'akkoord_klanten', type: 'date' },
-      { label: 'Docs ontvangen',   key: 'docs_ontvangen',  type: 'date' },
       {                                                      type: 'docs_btn' },
+      { label: 'Verstuurd Advocaat', key: 'docs_verstuurd',  type: 'date' },
     ],
     hasOpm: true,
   },
   advocaat: {
     fields: [
-      { label: 'Docs verstuurd', key: 'docs_verstuurd', type: 'date' },
-      { label: 'Belafspraak',    key: 'belafspraak',    type: 'date' },
-      { label: 'Rechtbank',      key: 'rechtbank',      type: 'date' },
+      { label: 'Belafspraak', key: 'belafspraak', type: 'date' },
+      { label: 'Rechtbank',   key: 'rechtbank',   type: 'date' },
     ],
     hasOpm: true,
   },
@@ -133,13 +131,12 @@ function getInitialColumn(row) {
   if (hasValue(row.inschrijving_ontvangen) || hasValue(row.verstuurd_gemeente))   return 'gemeente';
   if (hasValue(row.akkoord_klanter) || hasValue(row.verstuurd_klanten) ||
       hasValue(row.beschikking))                                                   return 'rechtbank';
-  if (hasValue(row.rechtbank) || hasValue(row.belafspraak) ||
-      hasValue(row.docs_verstuurd))                                                return 'advocaat';
-  if (hasValue(row.docs_ontvangen) || hasValue(row.akkoord_klanten))              return 'getekend';
-  if (hasValue(row.naar_klanten) || hasValue(row.antwoord) ||
-      hasValue(row.ter_controle))                                                  return 'controle';
+  if (hasValue(row.rechtbank) || hasValue(row.belafspraak))                        return 'advocaat';
+  if (hasValue(row.docs_verstuurd) || hasValue(row.akkoord_klanten))              return 'getekend';
   if (hasValue(row.concepten_akkoord) || hasValue(row.reactie_ontvangen) ||
       hasValue(row.afspraak))                                                      return 'concepten';
+  if (hasValue(row.naar_klanten) || hasValue(row.antwoord) ||
+      hasValue(row.ter_controle))                                                  return 'controle';
   return 'fase1';
 }
 
@@ -225,7 +222,7 @@ function isNaarKlantenOverdue(row) {
 
 function isAkkoordKlantenOverdue(row) {
   if (row.akkoord_klanten) return false;
-  return !!(row.naar_klanten && row.naar_klanten !== 'n.v.t.');
+  return !!(row.concepten_akkoord && row.concepten_akkoord !== 'n.v.t.');
 }
 
 function isDocsVerstuurdOverdue(row) {
@@ -561,7 +558,7 @@ function renderCard(row, col) {
       const complete = isInfoComplete(row.info_data);
       const btn = document.createElement('a');
       btn.className = 'card-status-btn' + (complete ? ' complete' : '');
-      btn.textContent = complete ? '✓ Info compleet' : 'Info invullen';
+      btn.textContent = complete ? '✓ Info compleet' : 'Info incompleet';
       btn.href = `info.html?id=${row.id}`;
       btn.addEventListener('click', e => e.stopPropagation());
       fieldRow.appendChild(btn);
@@ -572,7 +569,7 @@ function renderCard(row, col) {
       const urgent = !complete && isDocsUrgent(row);
       const link = document.createElement('a');
       link.className = 'info-link-btn' + (complete ? ' complete' : urgent ? ' urgent' : '');
-      link.textContent = complete ? '✓ Docs compleet' : 'Docs invullen';
+      link.textContent = complete ? '✓ Aktes compleet' : 'Aktes incompleet';
       link.href = `info.html?id=${row.id}`;
       link.addEventListener('click', e => e.stopPropagation());
       fieldRow.appendChild(link);
