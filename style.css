@@ -111,26 +111,22 @@ header .subtitle { font-size: 0.7rem; opacity: 0.5; letter-spacing: 0.12em; text
 .card.expanded .card-body { overflow: visible; }
 .card.expanded .card-opm { overflow: visible; }
 .card-top-border { height: 4px; width: 100%; flex-shrink: 0; }
-.card-body { padding: 10px 12px 10px; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-.card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; margin-bottom: 7px; flex-shrink: 0; }
+.card-top-area { flex-shrink: 0; display: flex; flex-direction: column; padding: 7px 12px 5px; }
+.card-body { padding: 0 12px 10px; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; flex-shrink: 0; }
 .card-name { font-family: 'Fraunces', serif; font-size: 0.97rem; font-weight: 600; color: var(--ink); line-height: 1.25; overflow: hidden; }
 .card-name-second { display: block; font-size: 0.97rem; font-weight: 600; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card-badges { display: flex; align-items: center; gap: 5px; flex-shrink: 0; margin-top: 1px; }
 
 /* ── ALARM BADGE ── */
-.alarm-badge { background: var(--accent); color: white; font-size: 0.62rem; font-family: 'DM Mono', monospace; border-radius: 20px; padding: 2px 7px; letter-spacing: 0.04em; line-height: 1.4; white-space: nowrap; }
+.alarm-badge { display: flex; align-items: center; line-height: 1; padding: 0; background: none; margin-top: 8px; }
 
-/* ── FLAG BUTTON ── */
-.flag-btn { width: 22px; height: 22px; border: 1.5px solid #ddd; border-radius: 3px; cursor: pointer; background: white; display: flex; align-items: center; justify-content: center; padding: 0; flex-shrink: 0; transition: all 0.15s; }
-.flag-btn::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: transparent; border: 1.5px solid var(--ink); display: block; }
-.flag-btn.flagged { background: white; border-color: #ddd; }
-.flag-btn.flagged::after { background: var(--accent); border-color: var(--accent); }
-.flag-btn:hover { filter: brightness(0.9); }
+/* ── FLAG STRIPE ── */
+.flag-stripe { position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: transparent; cursor: pointer; border-radius: 6px 0 0 6px; transition: background 0.15s; z-index: 4; }
+.flag-stripe.flagged { background: #d4771a; }
+.flag-stripe:not(.flagged):hover { background: rgba(212,119,26,0.25); }
 
 /* ── PROGRESS DOTS (8 columns) ── */
-.card-dots { display: flex; gap: 3px; align-items: center; margin-bottom: 8px; flex-shrink: 0; }
-.dot { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid #ccc; background: transparent; flex-shrink: 0; }
-.dot.reached { border-color: transparent; }
 
 /* ── CARD FIELDS ── */
 .card-fields { display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px; flex-shrink: 0; }
@@ -150,7 +146,7 @@ header .subtitle { font-size: 0.7rem; opacity: 0.5; letter-spacing: 0.12em; text
 .card-status-btn.complete:hover { background: #1a6e4a; color: white; }
 
 /* ── CARD OPMERKINGEN PREVIEW ── */
-.card-opm { font-size: 0.65rem; color: #aaa; line-height: 1.4; margin-top: 4px; border-top: 1px solid #f0ede7; padding-top: 5px; word-break: break-word; flex: 1; min-height: 0; overflow: hidden; }
+.card-opm { font-size: 0.65rem; color: #888; line-height: 1.4; margin-top: 4px; border-top: 1px solid #f0ede7; padding-top: 5px; word-break: break-word; flex: 1; min-height: 0; overflow: hidden; }
 .card-opm.card-opm-empty { border-top-color: transparent; }
 .card-opm.card-opm-hidden { visibility: hidden; }
 

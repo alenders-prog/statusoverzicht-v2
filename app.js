@@ -500,11 +500,16 @@ function renderCard(row, col) {
     dragRowId = null;
   });
 
-  // Colored top border
+  // Colored top area (border + name + dots)
+  const topArea = document.createElement('div');
+  topArea.className = 'card-top-area';
+  topArea.style.background = col.color + '18';
+  card.appendChild(topArea);
+
   const topBorder = document.createElement('div');
   topBorder.className = 'card-top-border';
   topBorder.style.background = col.color;
-  card.appendChild(topBorder);
+  topArea.appendChild(topBorder);
 
   const body = document.createElement('div');
   body.className = 'card-body';
@@ -533,32 +538,19 @@ function renderCard(row, col) {
   if (alarmCount > 0) {
     const badge = document.createElement('span');
     badge.className = 'alarm-badge';
-    badge.textContent = alarmCount;
+    badge.innerHTML = '<svg width="28" height="26" viewBox="0 0 14 13" fill="none"><path d="M7 0.5L13.5 12H0.5L7 0.5Z" fill="#c8390a" stroke="#c8390a" stroke-width="0.5" stroke-linejoin="round"/><rect x="6.25" y="3.5" width="1.5" height="4.5" rx="0.75" fill="white"/><circle cx="7" cy="10" r="0.85" fill="white"/></svg>';
     badges.appendChild(badge);
   }
 
-  const flagBtn = document.createElement('button');
-  flagBtn.className = 'flag-btn' + (row.flagged ? ' flagged' : '');
-  flagBtn.title = row.flagged ? 'Markering verwijderen' : 'Markeren';
-  flagBtn.addEventListener('click', e => { e.stopPropagation(); toggleFlag(row, flagBtn); });
-  badges.appendChild(flagBtn);
+  const flagStripe = document.createElement('div');
+  flagStripe.className = 'flag-stripe' + (row.flagged ? ' flagged' : '');
+  flagStripe.title = row.flagged ? 'Markering verwijderen' : 'Markeren';
+  flagStripe.addEventListener('click', e => { e.stopPropagation(); toggleFlag(row, flagStripe); });
+  card.appendChild(flagStripe);
 
   headerRow.appendChild(name);
   headerRow.appendChild(badges);
-  body.appendChild(headerRow);
-
-  // ── Progress dots (one per column) ──
-  const colOrder = COLUMNS.map(c => c.id);
-  const currentIdx = colOrder.indexOf(col.id);
-  const dots = document.createElement('div');
-  dots.className = 'card-dots';
-  COLUMNS.forEach((c, i) => {
-    const dot = document.createElement('span');
-    dot.className = 'dot' + (i <= currentIdx ? ' reached' : '');
-    if (i <= currentIdx) dot.style.background = c.color;
-    dots.appendChild(dot);
-  });
-  body.appendChild(dots);
+  topArea.appendChild(headerRow);
 
   // ── Column-specific field rows (always padded to MAX_FIELDS) ──
   const colDef = COLUMN_FIELDS[col.id] || { fields: [], hasOpm: false };
@@ -716,14 +708,14 @@ function filterCards(query) {
 }
 
 // ── FLAG ──
-async function toggleFlag(row, btn) {
+async function toggleFlag(row, stripe) {
   row.flagged = !row.flagged;
-  btn.classList.toggle('flagged', row.flagged);
-  btn.title = row.flagged ? 'Markering verwijderen' : 'Markeren';
+  stripe.classList.toggle('flagged', row.flagged);
+  stripe.title = row.flagged ? 'Markering verwijderen' : 'Markeren';
   const { error } = await db.from('dossiers').update({ flagged: row.flagged }).eq('id', row.id);
   if (error) {
     row.flagged = !row.flagged;
-    btn.classList.toggle('flagged', row.flagged);
+    stripe.classList.toggle('flagged', row.flagged);
     showToast('Opslaan mislukt');
   }
 }
