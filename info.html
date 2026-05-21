@@ -284,17 +284,24 @@ async function save() {
     const { data: curToev } = await db.from('dossiers').select(toevCols.join(',')).eq('id', dossierId).single();
     toevCols.forEach(col => { if (curToev && curToev[col] === 'n.v.t.') payload[col] = null; });
   }
-  const tCols = ['ter_controle','antwoord','naar_klanten','akkoord_klanten',
-   'docs_verstuurd','belafspraak','rechtbank','beschikking',
-   'verstuurd_klanten','akkoord_klanter'];
+  const tColsNee = ['ter_controle','antwoord','naar_klanten',
+   'belafspraak','rechtbank','beschikking',
+   'verstuurd_klanten','akkoord_klanter','docs_verstuurd',
+   'verstuurd_gemeente','inschrijving_ontvangen'];
+  const tColsJa = [...tColsNee, 'akkoord_klanten'];
   const rb = infoData._dienstverlening && infoData._dienstverlening.rechtbank;
   if (rb === 'Nee' || rb === 'Ja' || infoData._nvt) {
-    const { data: cur } = await db.from('dossiers').select(tCols.join(',')).eq('id', dossierId).single();
-    tCols.forEach(col => {
-      const v = cur && cur[col];
-      if (rb === 'Ja'  && v === 'n.v.t.')                              payload[col] = null;
-      else if ((rb === 'Nee' || infoData._nvt) && (!v || v === 'n.v.t.')) payload[col] = 'n.v.t.';
+    tColsJa.forEach(col => {
+      const v = statusData[col];
+      if (rb === 'Ja' && v === 'n.v.t.') {
+        payload[col] = null;
+        statusData[col] = null;
+      } else if ((rb === 'Nee' || infoData._nvt) && tColsNee.includes(col) && (!v || v === 'n.v.t.')) {
+        payload[col] = 'n.v.t.';
+        statusData[col] = 'n.v.t.';
+      }
     });
+    refreshStatusAlarms();
   }
 
   const { error } = await db.from('dossiers').update(payload).eq('id', dossierId);
@@ -307,6 +314,54 @@ function scheduleSave() {
   saveTimer = setTimeout(save, 700);
 }
 
+const PHASE_COLUMN_IDS = ['fase1','controle','concepten','getekend','advocaat','rechtbank','gemeente','afronding'];
+
+function hasVal(v) { return !!v && v !== 'n.v.t.'; }
+
+const RECHTBANK_NEE_SKIPPED = ['controle', 'advocaat', 'rechtbank', 'gemeente'];
+
+function isRechtbankNeeInfo() {
+  return !!(infoData._dienstverlening && infoData._dienstverlening.rechtbank === 'Nee');
+}
+
+function getInitialColumn(d) {
+  const rnee = isRechtbankNeeInfo();
+  if (hasVal(d.zoza_afgerond) || hasVal(d.vergoeding_ontvangen) || hasVal(d.vergoeding_aangevraagd) || hasVal(d.beeindigd)) return 'afronding';
+  if (hasVal(d.inschrijving_ontvangen))                               return 'afronding';
+  if (!rnee && hasVal(d.verstuurd_gemeente))                          return 'gemeente';
+  if (!rnee && hasVal(d.akkoord_klanter))                             return 'gemeente';
+  if (!rnee && (hasVal(d.verstuurd_klanten) || hasVal(d.beschikking))) return 'rechtbank';
+  if (!rnee && hasVal(d.rechtbank))                                   return 'rechtbank';
+  if (!rnee && hasVal(d.belafspraak))                                 return 'advocaat';
+  if (!rnee && hasVal(d.docs_verstuurd))                              return 'advocaat';
+  if (hasVal(d.akkoord_klanten))                                      return rnee ? 'afronding' : 'getekend';
+  if (hasVal(d.concepten_akkoord))                                    return 'getekend';
+  if (hasVal(d.reactie_ontvangen) || hasVal(d.afspraak))              return 'concepten';
+  if (hasVal(d.naar_klanten))                                         return 'concepten';
+  if (!rnee && (hasVal(d.antwoord) || hasVal(d.ter_controle)))        return 'controle';
+  if (hasVal(d.eerste_concept))                                       return rnee ? 'concepten' : 'controle';
+  return 'fase1';
+}
+
+function getCurrentPhaseIndex(data) {
+  const colId = isRechtbankNeeInfo() ? getInitialColumn(data) : (data.kanban_column || getInitialColumn(data));
+  const idx = PHASE_COLUMN_IDS.indexOf(colId);
+  return idx >= 0 ? idx : 0;
+}
+
+function refreshPhaseHighlight() {
+  const active = getCurrentPhaseIndex(statusData);
+  STATUS_SECTIONS.forEach((section, i) => {
+    const el = document.getElementById(`status-phase-title-${i}`);
+    if (!el) return;
+    if (i === active) {
+      el.style.cssText = `background:${section.color};color:white;border-radius:3px;padding:3px 6px;margin-bottom:4px;letter-spacing:0.08em;`;
+    } else {
+      el.style.cssText = `border-bottom:2px solid ${section.color};color:${section.color};margin-bottom:4px;`;
+    }
+  });
+}
+
 function refreshStatusAlarms() {
   STATUS_SECTIONS.forEach(section => {
     section.fields.forEach(f => {
@@ -314,6 +369,7 @@ function refreshStatusAlarms() {
       if (row && ALARM_CHECKS[f.key]) row.classList.toggle('alarm', ALARM_CHECKS[f.key](statusData));
     });
   });
+  refreshPhaseHighlight();
 }
 
 function saveStatusField(key, value) {
@@ -356,7 +412,7 @@ const ALARM_CHECKS = {
   akkoord_klanter:        r => { if (r.akkoord_klanter) return false; const days = parseInt(alarmSettings.reactie_akkoord_beschikking) || 0; return !!days && deadlinePassed(r.verstuurd_klanten, days); },
   verstuurd_gemeente:     r => !r.verstuurd_gemeente && !!(r.akkoord_klanter && r.akkoord_klanter !== 'n.v.t.'),
   inschrijving_ontvangen: r => { if (r.inschrijving_ontvangen) return false; const days = parseInt(alarmSettings.reactie_inschrijving_gemeente) || 0; return !!days && deadlinePassed(r.verstuurd_gemeente, days); },
-  beeindigd:              r => !r.beeindigd && !!(r.inschrijving_ontvangen && r.inschrijving_ontvangen !== 'n.v.t.'),
+  beeindigd:              r => !r.beeindigd && (!!(r.inschrijving_ontvangen && r.inschrijving_ontvangen !== 'n.v.t.') || (isRechtbankNeeInfo() && !!(r.akkoord_klanten && r.akkoord_klanten !== 'n.v.t.'))),
   vergoeding_aangevraagd: r => !r.vergoeding_aangevraagd && !!(r.beeindigd && r.beeindigd !== 'n.v.t.'),
   vergoeding_ontvangen:   r => { if (r.vergoeding_ontvangen) return false; const days = parseInt(alarmSettings.reactie_vergoeding_rvr) || 0; return !!days && deadlinePassed(r.vergoeding_aangevraagd, days); },
   zoza_afgerond:          r => !r.zoza_afgerond && !!(r.beeindigd && r.beeindigd !== 'n.v.t.' && r.vergoeding_ontvangen),
@@ -540,12 +596,18 @@ function renderForm() {
     const grid = document.createElement('div');
     grid.className = 'status-grid';
     let firstBlock = null;
+    const activePhase = getCurrentPhaseIndex(statusData);
     STATUS_SECTIONS.forEach((section, sIdx) => {
       const block = document.createElement('div');
       block.className = 'status-col-block';
       const titleEl = document.createElement('div');
+      titleEl.id = `status-phase-title-${sIdx}`;
       titleEl.className = 'status-section-title';
-      titleEl.style.cssText = `border-bottom:2px solid ${section.color};color:${section.color};margin-bottom:4px;`;
+      if (sIdx === activePhase) {
+        titleEl.style.cssText = `background:${section.color};color:white;border-radius:3px;padding:3px 6px;margin-bottom:4px;letter-spacing:0.08em;`;
+      } else {
+        titleEl.style.cssText = `border-bottom:2px solid ${section.color};color:${section.color};margin-bottom:4px;`;
+      }
       titleEl.textContent = section.title;
       block.appendChild(titleEl);
       section.fields.forEach(f => {

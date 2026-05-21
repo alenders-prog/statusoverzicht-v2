@@ -125,37 +125,37 @@ function isOverdue(val) {
 }
 
 // ── COLUMN PLACEMENT ──
-// Initial column is determined by the last-filled date field, checking from last to first column.
+const RECHTBANK_NEE_SKIPPED = ['controle', 'advocaat', 'rechtbank', 'gemeente'];
+
+function isRechtbankNee(row) {
+  try {
+    const info = typeof row.info_data === 'string' ? JSON.parse(row.info_data) : (row.info_data || {});
+    return !!(info && info._dienstverlening && info._dienstverlening.rechtbank === 'Nee');
+  } catch (e) { return false; }
+}
+
 function getInitialColumn(row) {
-  // afronding (no next phase)
+  const rnee = isRechtbankNee(row);
   if (hasValue(row.zoza_afgerond) || hasValue(row.vergoeding_ontvangen) ||
       hasValue(row.vergoeding_aangevraagd) || hasValue(row.beeindigd))            return 'afronding';
-  // inschrijving_ontvangen = last of gemeente → afronding
   if (hasValue(row.inschrijving_ontvangen))                                       return 'afronding';
-  if (hasValue(row.verstuurd_gemeente))                                           return 'gemeente';
-  // akkoord_klanter = last of rechtbank → gemeente
-  if (hasValue(row.akkoord_klanter))                                              return 'gemeente';
-  if (hasValue(row.verstuurd_klanten) || hasValue(row.beschikking))               return 'rechtbank';
-  // rechtbank field = last of advocaat → rechtbank column
-  if (hasValue(row.rechtbank))                                                    return 'rechtbank';
-  if (hasValue(row.belafspraak))                                                  return 'advocaat';
-  // docs_verstuurd = last of getekend → advocaat
-  if (hasValue(row.docs_verstuurd))                                               return 'advocaat';
-  // exception: Via Rechtbank = Nee (belafspraak = n.v.t.) → akkoord_klanten moves to afronding
-  if (hasValue(row.akkoord_klanten) && row.belafspraak === 'n.v.t.')             return 'afronding';
-  if (hasValue(row.akkoord_klanten))                                              return 'getekend';
-  // concepten_akkoord = last of concepten → getekend
+  if (!rnee && hasValue(row.verstuurd_gemeente))                                  return 'gemeente';
+  if (!rnee && hasValue(row.akkoord_klanter))                                     return 'gemeente';
+  if (!rnee && (hasValue(row.verstuurd_klanten) || hasValue(row.beschikking)))    return 'rechtbank';
+  if (!rnee && hasValue(row.rechtbank))                                           return 'rechtbank';
+  if (!rnee && hasValue(row.belafspraak))                                         return 'advocaat';
+  if (!rnee && hasValue(row.docs_verstuurd))                                      return 'advocaat';
+  if (hasValue(row.akkoord_klanten))                                              return rnee ? 'afronding' : 'getekend';
   if (hasValue(row.concepten_akkoord))                                            return 'getekend';
   if (hasValue(row.reactie_ontvangen) || hasValue(row.afspraak))                  return 'concepten';
-  // naar_klanten = last of controle → concepten
   if (hasValue(row.naar_klanten))                                                 return 'concepten';
-  if (hasValue(row.antwoord) || hasValue(row.ter_controle))                       return 'controle';
-  // eerste_concept = last of fase1 → controle
-  if (hasValue(row.eerste_concept))                                               return 'controle';
+  if (!rnee && (hasValue(row.antwoord) || hasValue(row.ter_controle)))            return 'controle';
+  if (hasValue(row.eerste_concept))                                               return rnee ? 'concepten' : 'controle';
   return 'fase1';
 }
 
 function getColumn(row) {
+  if (isRechtbankNee(row)) return getInitialColumn(row);
   return row.kanban_column || getInitialColumn(row);
 }
 
@@ -302,7 +302,8 @@ function isInschrijvingOverdue(row) {
 
 function isBeeindigdOverdue(row) {
   if (row.beeindigd) return false;
-  return !!(row.inschrijving_ontvangen && row.inschrijving_ontvangen !== 'n.v.t.');
+  if (row.inschrijving_ontvangen && row.inschrijving_ontvangen !== 'n.v.t.') return true;
+  return isRechtbankNee(row) && !!(row.akkoord_klanten && row.akkoord_klanten !== 'n.v.t.');
 }
 
 function isZozaOverdue(row) {
@@ -514,7 +515,17 @@ function renderCard(row, col) {
 
   const name = document.createElement('div');
   name.className = 'card-name';
-  name.textContent = row.klant || '(Naamloos)';
+  const klant = row.klant || '(Naamloos)';
+  const dashIdx = klant.indexOf(' - ');
+  if (dashIdx !== -1) {
+    name.textContent = klant.slice(0, dashIdx);
+    const second = document.createElement('span');
+    second.className = 'card-name-second';
+    second.textContent = klant.slice(dashIdx + 3);
+    name.appendChild(second);
+  } else {
+    name.textContent = klant;
+  }
 
   const badges = document.createElement('div');
   badges.className = 'card-badges';
@@ -631,7 +642,7 @@ function renderCard(row, col) {
   opm.className = 'card-opm'
     + (!colDef.hasOpm ? ' card-opm-hidden' : '')
     + (!opmText ? ' card-opm-empty' : '');
-  opm.textContent = opmText ? opmText.slice(0, 100) : '';
+  opm.textContent = opmText || '';
   body.appendChild(opm);
 
   card.appendChild(body);
@@ -639,6 +650,17 @@ function renderCard(row, col) {
   card.addEventListener('click', () => {
     if (row.id) window.location.href = `info.html?id=${row.id}&tab=klantstatus`;
   });
+
+  if (opmText && colDef.hasOpm) {
+    let hoverTimer = null;
+    card.addEventListener('mouseenter', () => {
+      hoverTimer = setTimeout(() => card.classList.add('expanded'), 500);
+    });
+    card.addEventListener('mouseleave', () => {
+      clearTimeout(hoverTimer);
+      card.classList.remove('expanded');
+    });
+  }
 
   return card;
 }

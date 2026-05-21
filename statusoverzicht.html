@@ -471,6 +471,7 @@ function refreshAllAlarms(tr, row, key) {
   if (key === 'eerste_concept' || key === 'ter_controle') refreshAlarm(tr, row, 'ter_controle', isTerControleOverdue);
   if (key === 'ter_controle' || key === 'antwoord') refreshAlarm(tr, row, 'antwoord', isAntwoordOverdue);
   if (key === 'antwoord' || key === 'naar_klanten') refreshAlarm(tr, row, 'naar_klanten', isNaarKlantenOverdue);
+  if (key === 'naar_klanten' || key === 'eerste_concept' || key === 'afspraak') refreshAlarm(tr, row, 'afspraak', isAfspraakOverdue);
   if (key === 'concepten_akkoord' || key === 'akkoord_klanten') refreshAlarm(tr, row, 'akkoord_klanten', isAkkoordKlantenOverdue);
   if (key === 'akkoord_klanten' || key === 'docs_verstuurd') refreshAlarm(tr, row, 'docs_verstuurd', isDocsVerstuurdOverdue);
   if (key === 'akkoord_klanten') refreshDocsUrgent(tr, row);
