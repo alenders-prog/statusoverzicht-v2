@@ -428,6 +428,7 @@ async function enterApp(user) {
 // ── ALARM FUNCTIONS ──
 function isActieVoorOverdue(row) { const val = row.actie_voor; if (!val || val === 'n.v.t.') return false; return new Date(val) < new Date(); }
 function isGeneralOverdue(row, key, prevKey) { if (row[key]) return false; return !!row[prevKey]; }
+function isAfspraakOverdue(row) { if (row.afspraak) return false; if (row.naar_klanten && row.naar_klanten !== 'n.v.t.') return true; if (row.naar_klanten === 'n.v.t.') return !!row.eerste_concept; return false; }
 
 function isBevestigdOverdue(row) { if (row.bevestigd) return false; const a = row.aangevraagd; if (!a || a === 'n.v.t.') return false; const days = parseInt(alarmSettings.reactie_docs_teurlings) || 0; if (!days) return false; const d = new Date(a); d.setDate(d.getDate() + days); return d < new Date(); }
 function isReactieOverdue(row) { if (row.reactie_ontvangen) return false; const a = row.afspraak; if (!a || a === 'n.v.t.') return false; const days = parseInt(alarmSettings.reactie_klanten_concepten) || 0; if (!days) return false; const d = new Date(a); d.setDate(d.getDate() + days); return d < new Date(); }
@@ -561,9 +562,9 @@ function renderTable() {
       if (key === 'vergoeding_aangevraagd' && isVergoedingAangevraagdOverdue(row)) td.classList.add('alarm-red');
       if (key === 'vergoeding_ontvangen' && isVergoedingOntvangenOverdue(row)) td.classList.add('alarm-red');
       if (key === 'zoza_afgerond' && isZozaOverdue(row)) td.classList.add('alarm-red');
-      if (key === 'datum_afspraak' && isGeneralOverdue(row, 'datum_afspraak', 'bevestigd'))   td.classList.add('alarm-red');
-      if (key === 'eerste_concept' && isGeneralOverdue(row, 'eerste_concept', 'actie_voor')) td.classList.add('alarm-red');
-      if (key === 'afspraak'       && isGeneralOverdue(row, 'afspraak', 'naar_klanten'))      td.classList.add('alarm-red');
+
+
+      if (key === 'afspraak'       && isAfspraakOverdue(row))                                  td.classList.add('alarm-red');
 
       const display = document.createElement('div');
       display.className = 'cell-display' + (val ? '' : ' empty');
@@ -699,8 +700,7 @@ function rowHasAlarm(row) {
     isRechtbankOverdue(row) || isBeschikkingOverdue(row) || isVerstuurKlantenOverdue(row) || isAkkoordKlanterOverdue(row) ||
     isVerstuurGemeenteOverdue(row) || isInschrijvingOverdue(row) || isBeeindigdOverdue(row) ||
     isVergoedingAangevraagdOverdue(row) || isVergoedingOntvangenOverdue(row) || isZozaOverdue(row) ||
-    isGeneralOverdue(row, 'datum_afspraak', 'bevestigd') || isGeneralOverdue(row, 'eerste_concept', 'actie_voor') ||
-    isGeneralOverdue(row, 'afspraak', 'naar_klanten');
+    isAfspraakOverdue(row);
 }
 function shouldHide(row, query) {
   if (query && !(row.klant || '').toLowerCase().includes(query)) return true;

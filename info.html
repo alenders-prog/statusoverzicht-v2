@@ -340,8 +340,8 @@ function deadlinePassed(dateStr, days) {
 const ALARM_CHECKS = {
   bevestigd:              r => { if (r.bevestigd) return false; const days = parseInt(alarmSettings.reactie_docs_teurlings) || 14; return deadlinePassed(r.aangevraagd, days); },
   actie_voor:             r => !!(r.actie_voor && r.actie_voor !== 'n.v.t.' && new Date(r.actie_voor) < new Date()),
-  eerste_concept:         r => !r.eerste_concept && !!r.actie_voor,
-  afspraak:               r => !r.afspraak && !!r.naar_klanten,
+
+  afspraak:               r => !r.afspraak && ((r.naar_klanten && r.naar_klanten !== 'n.v.t.') || (r.naar_klanten === 'n.v.t.' && !!r.eerste_concept)),
   reactie_ontvangen:      r => { if (r.reactie_ontvangen) return false; const days = parseInt(alarmSettings.reactie_klanten_concepten) || 0; return !!days && deadlinePassed(r.afspraak, days); },
   concepten_akkoord:      r => { if (r.concepten_akkoord) return false; const days = parseInt(alarmSettings.reactie_klanten_concepten) || 0; return !!days && deadlinePassed(r.reactie_ontvangen, days); },
   ter_controle:           r => !r.ter_controle && !!(r.eerste_concept && r.eerste_concept !== 'n.v.t.'),

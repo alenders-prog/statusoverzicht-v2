@@ -315,6 +315,13 @@ function isGeneralOverdue(row, key, prevKey) {
   return !!row[prevKey];
 }
 
+function isAfspraakOverdue(row) {
+  if (row.afspraak) return false;
+  if (row.naar_klanten && row.naar_klanten !== 'n.v.t.') return true;
+  if (row.naar_klanten === 'n.v.t.') return !!row.eerste_concept;
+  return false;
+}
+
 function isDocsUrgent(row) {
   if (row.docs_compleet === 'ja') return false;
   return !!(row.akkoord_klanten && row.akkoord_klanten !== 'n.v.t.');
@@ -333,9 +340,9 @@ function countAlarms(row) {
   if (isAntwoordOverdue(row))               count++;
   if (isNaarKlantenOverdue(row))            count++;
   if (isAkkoordKlantenOverdue(row))         count++;
-  if (isGeneralOverdue(row, 'datum_afspraak', 'bevestigd'))  count++;
-  if (isGeneralOverdue(row, 'eerste_concept', 'actie_voor')) count++;
-  if (isGeneralOverdue(row, 'afspraak', 'naar_klanten'))     count++;
+
+
+  if (isAfspraakOverdue(row))                                count++;
   if (isDocsVerstuurdOverdue(row))          count++;
   if (isBelafspraakOverdue(row))            count++;
   if (isRechtbankOverdue(row))              count++;
@@ -372,9 +379,9 @@ const FIELD_ALARM_CHECKS = {
   vergoeding_aangevraagd: r => isVergoedingAangevraagdOverdue(r),
   vergoeding_ontvangen:   r => isVergoedingOntvangenOverdue(r),
   zoza_afgerond:          r => isZozaOverdue(r),
-  datum_afspraak:         r => isGeneralOverdue(r, 'datum_afspraak', 'bevestigd'),
-  eerste_concept:         r => isGeneralOverdue(r, 'eerste_concept', 'actie_voor'),
-  afspraak:               r => isGeneralOverdue(r, 'afspraak', 'naar_klanten'),
+
+
+  afspraak:               r => isAfspraakOverdue(r),
 };
 
 // ── SORT ──
@@ -458,6 +465,18 @@ function renderBoard() {
     colEl.appendChild(cardsWrap);
     board.appendChild(colEl);
   });
+  requestAnimationFrame(syncKanbanScroll);
+}
+
+function syncKanbanScroll() {
+  const board = document.getElementById('kanbanBoard');
+  const track = document.getElementById('kanbanScrollTrack');
+  const slider = document.getElementById('kanbanScroller');
+  if (!board || !track || !slider) return;
+  const max = board.scrollWidth - board.clientWidth;
+  track.style.display = max > 10 ? 'block' : 'none';
+  slider.max = max;
+  slider.value = board.scrollLeft;
 }
 
 // ── RENDER CARD ──
@@ -772,7 +791,17 @@ async function enterApp(user) {
   } finally {
     document.getElementById('loadingOverlay').style.display = 'none';
     document.getElementById('appScreen').style.display = 'block';
+    initKanbanScroll();
   }
+}
+
+function initKanbanScroll() {
+  const board  = document.getElementById('kanbanBoard');
+  const slider = document.getElementById('kanbanScroller');
+  if (!board || !slider) return;
+  slider.addEventListener('input', () => { board.scrollLeft = parseInt(slider.value); });
+  board.addEventListener('scroll', () => { slider.value = board.scrollLeft; });
+  window.addEventListener('resize', syncKanbanScroll);
 }
 
 // ── TOAST ──

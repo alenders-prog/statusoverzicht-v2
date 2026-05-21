@@ -82,7 +82,15 @@ header .subtitle { font-size: 0.7rem; opacity: 0.5; letter-spacing: 0.12em; text
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
 /* ── KANBAN BOARD ── */
-.kanban-wrapper { display: flex; overflow-x: auto; gap: 14px; padding: 20px 28px 28px; min-height: calc(100vh - 116px); align-items: stretch; }
+.kanban-wrapper { display: flex; overflow-x: auto; gap: 14px; padding: 20px 28px 60px; min-height: calc(100vh - 116px); align-items: stretch; scrollbar-width: none; }
+.kanban-wrapper::-webkit-scrollbar { display: none; }
+.kanban-scroll-track { position: fixed; bottom: 0; left: 0; right: 0; padding: 6px 28px 10px; background: var(--paper); border-top: 1px solid var(--rule); z-index: 50; }
+.kanban-scroll-track input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 2px; background: var(--rule); outline: none; cursor: pointer; display: block; }
+.kanban-scroll-track input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 48px; height: 8px; border-radius: 4px; background: #bbb; cursor: grab; transition: background 0.15s; }
+.kanban-scroll-track input[type="range"]::-webkit-slider-thumb:hover { background: #999; }
+.kanban-scroll-track input[type="range"]::-webkit-slider-thumb:active { cursor: grabbing; background: #777; }
+.kanban-scroll-track input[type="range"]::-moz-range-thumb { width: 48px; height: 8px; border-radius: 4px; background: #bbb; cursor: grab; border: none; transition: background 0.15s; }
+.kanban-scroll-track input[type="range"]::-moz-range-track { height: 4px; background: var(--rule); border-radius: 2px; }
 .kanban-col { flex: 0 0 280px; width: 280px; background: var(--cream); border-radius: 10px; display: flex; flex-direction: column; }
 .kanban-col.kanban-col-wide { flex: 0 0 868px; width: 868px; }
 .kanban-col.kanban-col-wide .kanban-cards { display: grid; grid-template-columns: repeat(3, 1fr); align-items: start; align-content: start; }
