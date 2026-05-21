@@ -205,7 +205,8 @@ const STATUS_SECTIONS = [
     { key: 'bevestigd',    label: 'Toevoeging bevestigd',   type: 'date' },
     { key: 'gemaild',       label: 'Klant gemaild',          type: 'yn'   },
     { key: '_info',          label: 'Info',                  type: 'info_status'  },
-    { key: 'actie_voor',   label: 'Actie voor',             type: 'date' },
+    { key: 'actie_voor',     label: 'Actie voor',   type: 'date' },
+    { key: 'eerste_concept', label: '1e concept',   type: 'date' },
   ]},
   { title: 'Controle Advocaat', color: '#1a6e4a', fields: [
     { key: 'ter_controle', label: 'Ter controle', type: 'date' },
@@ -306,8 +307,18 @@ function scheduleSave() {
   saveTimer = setTimeout(save, 700);
 }
 
+function refreshStatusAlarms() {
+  STATUS_SECTIONS.forEach(section => {
+    section.fields.forEach(f => {
+      const row = document.querySelector(`.status-field-row[data-key="${f.key}"]`);
+      if (row && ALARM_CHECKS[f.key]) row.classList.toggle('alarm', ALARM_CHECKS[f.key](statusData));
+    });
+  });
+}
+
 function saveStatusField(key, value) {
   statusData[key] = value;
+  refreshStatusAlarms();
   statusSaveQueue[key] = value;
   clearTimeout(statusSaveTimer);
   setSyncStatus('saving');
@@ -329,12 +340,14 @@ function deadlinePassed(dateStr, days) {
 const ALARM_CHECKS = {
   bevestigd:              r => { if (r.bevestigd) return false; const days = parseInt(alarmSettings.reactie_docs_teurlings) || 14; return deadlinePassed(r.aangevraagd, days); },
   actie_voor:             r => !!(r.actie_voor && r.actie_voor !== 'n.v.t.' && new Date(r.actie_voor) < new Date()),
+  eerste_concept:         r => !r.eerste_concept && !!r.actie_voor,
+  afspraak:               r => !r.afspraak && !!r.naar_klanten,
   reactie_ontvangen:      r => { if (r.reactie_ontvangen) return false; const days = parseInt(alarmSettings.reactie_klanten_concepten) || 0; return !!days && deadlinePassed(r.afspraak, days); },
   concepten_akkoord:      r => { if (r.concepten_akkoord) return false; const days = parseInt(alarmSettings.reactie_klanten_concepten) || 0; return !!days && deadlinePassed(r.reactie_ontvangen, days); },
-  ter_controle:           r => !r.ter_controle && !!(r.concepten_akkoord && r.concepten_akkoord !== 'n.v.t.'),
+  ter_controle:           r => !r.ter_controle && !!(r.eerste_concept && r.eerste_concept !== 'n.v.t.'),
   antwoord:               r => { if (r.antwoord) return false; const days = parseInt(alarmSettings.reactie_teurlings_concepten) || 0; return !!days && deadlinePassed(r.ter_controle, days); },
   naar_klanten:           r => !r.naar_klanten && !!(r.antwoord && r.antwoord !== 'n.v.t.'),
-  akkoord_klanten:        r => !r.akkoord_klanten && !!(r.naar_klanten && r.naar_klanten !== 'n.v.t.'),
+  akkoord_klanten:        r => !r.akkoord_klanten && !!r.concepten_akkoord,
   docs_verstuurd:         r => !r.docs_verstuurd && !!(r.akkoord_klanten && r.akkoord_klanten !== 'n.v.t.'),
   belafspraak:            r => !r.belafspraak && !!(r.docs_verstuurd && r.docs_verstuurd !== 'n.v.t.'),
   rechtbank:              r => !r.rechtbank && deadlinePassed(r.belafspraak, 0),
@@ -538,6 +551,7 @@ function renderForm() {
       section.fields.forEach(f => {
         const row = document.createElement('div');
         row.className = 'status-field-row';
+        row.dataset.key = f.key;
         if (ALARM_CHECKS[f.key] && ALARM_CHECKS[f.key](statusData)) row.classList.add('alarm');
         const lbl = document.createElement('span');
         lbl.className = 'status-field-label';

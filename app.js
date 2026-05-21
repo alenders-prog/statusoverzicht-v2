@@ -39,7 +39,8 @@ const COLUMN_FIELDS = {
       { label: 'Toevoeging bevestigd', key: 'bevestigd',  type: 'date' },
       { label: 'Klant gemaild',        key: 'gemaild',     type: 'yn'   },
       {                                                     type: 'info_btn' },
-      { label: 'Actie voor',           key: 'actie_voor', type: 'date' },
+      { label: 'Actie voor',          key: 'actie_voor',     type: 'date' },
+      { label: '1e concept',          key: 'eerste_concept', type: 'date' },
     ],
     hasOpm: true,
   },
@@ -126,17 +127,31 @@ function isOverdue(val) {
 // ── COLUMN PLACEMENT ──
 // Initial column is determined by the last-filled date field, checking from last to first column.
 function getInitialColumn(row) {
+  // afronding (no next phase)
   if (hasValue(row.zoza_afgerond) || hasValue(row.vergoeding_ontvangen) ||
       hasValue(row.vergoeding_aangevraagd) || hasValue(row.beeindigd))            return 'afronding';
-  if (hasValue(row.inschrijving_ontvangen) || hasValue(row.verstuurd_gemeente))   return 'gemeente';
-  if (hasValue(row.akkoord_klanter) || hasValue(row.verstuurd_klanten) ||
-      hasValue(row.beschikking))                                                   return 'rechtbank';
-  if (hasValue(row.rechtbank) || hasValue(row.belafspraak))                        return 'advocaat';
-  if (hasValue(row.docs_verstuurd) || hasValue(row.akkoord_klanten))              return 'getekend';
-  if (hasValue(row.concepten_akkoord) || hasValue(row.reactie_ontvangen) ||
-      hasValue(row.afspraak))                                                      return 'concepten';
-  if (hasValue(row.naar_klanten) || hasValue(row.antwoord) ||
-      hasValue(row.ter_controle))                                                  return 'controle';
+  // inschrijving_ontvangen = last of gemeente → afronding
+  if (hasValue(row.inschrijving_ontvangen))                                       return 'afronding';
+  if (hasValue(row.verstuurd_gemeente))                                           return 'gemeente';
+  // akkoord_klanter = last of rechtbank → gemeente
+  if (hasValue(row.akkoord_klanter))                                              return 'gemeente';
+  if (hasValue(row.verstuurd_klanten) || hasValue(row.beschikking))               return 'rechtbank';
+  // rechtbank field = last of advocaat → rechtbank column
+  if (hasValue(row.rechtbank))                                                    return 'rechtbank';
+  if (hasValue(row.belafspraak))                                                  return 'advocaat';
+  // docs_verstuurd = last of getekend → advocaat
+  if (hasValue(row.docs_verstuurd))                                               return 'advocaat';
+  // exception: Via Rechtbank = Nee (belafspraak = n.v.t.) → akkoord_klanten moves to afronding
+  if (hasValue(row.akkoord_klanten) && row.belafspraak === 'n.v.t.')             return 'afronding';
+  if (hasValue(row.akkoord_klanten))                                              return 'getekend';
+  // concepten_akkoord = last of concepten → getekend
+  if (hasValue(row.concepten_akkoord))                                            return 'getekend';
+  if (hasValue(row.reactie_ontvangen) || hasValue(row.afspraak))                  return 'concepten';
+  // naar_klanten = last of controle → concepten
+  if (hasValue(row.naar_klanten))                                                 return 'concepten';
+  if (hasValue(row.antwoord) || hasValue(row.ter_controle))                       return 'controle';
+  // eerste_concept = last of fase1 → controle
+  if (hasValue(row.eerste_concept))                                               return 'controle';
   return 'fase1';
 }
 
@@ -163,7 +178,7 @@ function isBevestigdOverdue(row) {
 
 function isTerControleOverdue(row) {
   if (row.ter_controle) return false;
-  return !!(row.concepten_akkoord && row.concepten_akkoord !== 'n.v.t.');
+  return !!(row.eerste_concept && row.eerste_concept !== 'n.v.t.');
 }
 
 function isVergoedingAangevraagdOverdue(row) {
@@ -222,7 +237,7 @@ function isNaarKlantenOverdue(row) {
 
 function isAkkoordKlantenOverdue(row) {
   if (row.akkoord_klanten) return false;
-  return !!(row.concepten_akkoord && row.concepten_akkoord !== 'n.v.t.');
+  return !!row.concepten_akkoord;
 }
 
 function isDocsVerstuurdOverdue(row) {
@@ -295,6 +310,11 @@ function isZozaOverdue(row) {
   return !!(row.beeindigd && row.beeindigd !== 'n.v.t.' && row.vergoeding_ontvangen);
 }
 
+function isGeneralOverdue(row, key, prevKey) {
+  if (row[key]) return false;
+  return !!row[prevKey];
+}
+
 function isDocsUrgent(row) {
   if (row.docs_compleet === 'ja') return false;
   return !!(row.akkoord_klanten && row.akkoord_klanten !== 'n.v.t.');
@@ -313,6 +333,9 @@ function countAlarms(row) {
   if (isAntwoordOverdue(row))               count++;
   if (isNaarKlantenOverdue(row))            count++;
   if (isAkkoordKlantenOverdue(row))         count++;
+  if (isGeneralOverdue(row, 'datum_afspraak', 'bevestigd'))  count++;
+  if (isGeneralOverdue(row, 'eerste_concept', 'actie_voor')) count++;
+  if (isGeneralOverdue(row, 'afspraak', 'naar_klanten'))     count++;
   if (isDocsVerstuurdOverdue(row))          count++;
   if (isBelafspraakOverdue(row))            count++;
   if (isRechtbankOverdue(row))              count++;
@@ -349,6 +372,9 @@ const FIELD_ALARM_CHECKS = {
   vergoeding_aangevraagd: r => isVergoedingAangevraagdOverdue(r),
   vergoeding_ontvangen:   r => isVergoedingOntvangenOverdue(r),
   zoza_afgerond:          r => isZozaOverdue(r),
+  datum_afspraak:         r => isGeneralOverdue(r, 'datum_afspraak', 'bevestigd'),
+  eerste_concept:         r => isGeneralOverdue(r, 'eerste_concept', 'actie_voor'),
+  afspraak:               r => isGeneralOverdue(r, 'afspraak', 'naar_klanten'),
 };
 
 // ── SORT ──
@@ -706,9 +732,10 @@ async function signIn() {
   const btn      = document.getElementById('loginBtn');
   if (!email || !password) { showLoginMsg('Vul e-mailadres en wachtwoord in.', true); return; }
   btn.disabled = true; btn.textContent = 'Inloggen...';
-  const { error } = await db.auth.signInWithPassword({ email, password });
+  const { data, error } = await db.auth.signInWithPassword({ email, password });
   btn.disabled = false; btn.textContent = 'Inloggen';
   if (error) showLoginMsg('Onjuiste gegevens.', true);
+  else await enterApp(data.user);
 }
 
 function showLoginMsg(text, isError) {
