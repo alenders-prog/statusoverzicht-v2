@@ -192,9 +192,10 @@ const SECTIONS = [
   {
     title: 'Rechtbank',
     fields: [
-      { key: 'huwelijksakte',   label: 'Huwelijksakte / Partnerschapsakte' },
-      { key: 'kindverklaringen', label: 'Kindverklaringen' },
-      { key: 'geboorteaktes',   label: 'Geboorteaktes' },
+      { key: 'huwelijksakte',      label: 'Huwelijksakte / Partnerschapsakte' },
+      { key: 'kindverklaringen',   label: 'Kindverklaringen' },
+      { key: 'geboorteaktes',      label: 'Geboorteaktes' },
+      { key: 'pensioenverklaring', label: 'Pensioenverklaring' },
     ]
   }
 ];
@@ -267,7 +268,7 @@ async function save() {
     document.getElementById('klantName').textContent = payload.klant;
     document.title = `Gegevens – ${payload.klant}`;
   }
-  const rechtbankKeys = ['huwelijksakte', 'kindverklaringen', 'geboorteaktes'];
+  const rechtbankKeys = ['huwelijksakte', 'kindverklaringen', 'geboorteaktes', 'pensioenverklaring'];
   payload.docs_compleet = rechtbankKeys.every(key => {
     const d = infoData[key] || { b: 0, a: 0 };
     return d.b === d.a;
