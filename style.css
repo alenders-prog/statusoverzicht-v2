@@ -126,8 +126,6 @@ header .subtitle { font-size: 0.7rem; opacity: 0.5; letter-spacing: 0.12em; text
 .flag-stripe.flagged { background: #d4771a; }
 .flag-stripe:not(.flagged):hover { background: rgba(212,119,26,0.25); }
 
-/* ── PROGRESS DOTS (8 columns) ── */
-
 /* ── CARD FIELDS ── */
 .card-fields { display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px; flex-shrink: 0; }
 .card-field-row { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 0.66rem; min-height: 17px; }

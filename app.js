@@ -125,13 +125,13 @@ function isOverdue(val) {
 }
 
 // ── COLUMN PLACEMENT ──
-const RECHTBANK_NEE_SKIPPED = ['controle', 'advocaat', 'rechtbank', 'gemeente'];
-
 function isRechtbankNee(row) {
+  if (row._rneeCache !== undefined) return row._rneeCache;
   try {
     const info = typeof row.info_data === 'string' ? JSON.parse(row.info_data) : (row.info_data || {});
-    return !!(info && info._dienstverlening && info._dienstverlening.rechtbank === 'Nee');
-  } catch (e) { return false; }
+    row._rneeCache = !!(info && info._dienstverlening && info._dienstverlening.rechtbank === 'Nee');
+  } catch (e) { row._rneeCache = false; }
+  return row._rneeCache;
 }
 
 function getInitialColumn(row) {
@@ -546,7 +546,6 @@ function renderCard(row, col) {
   flagStripe.className = 'flag-stripe' + (row.flagged ? ' flagged' : '');
   flagStripe.title = row.flagged ? 'Markering verwijderen' : 'Markeren';
   flagStripe.addEventListener('click', e => { e.stopPropagation(); toggleFlag(row, flagStripe); });
-  card.appendChild(flagStripe);
 
   headerRow.appendChild(name);
   headerRow.appendChild(badges);
@@ -638,6 +637,7 @@ function renderCard(row, col) {
   body.appendChild(opm);
 
   card.appendChild(body);
+  card.appendChild(flagStripe);
 
   card.addEventListener('click', () => {
     if (row.id) window.location.href = `info.html?id=${row.id}&tab=klantstatus`;
