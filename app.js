@@ -671,6 +671,7 @@ function setFilter(type, btn) {
 }
 
 function filterCards(query) {
+  sessionStorage.setItem('kanbanSearch', query || '');
   const q = (query || '').trim().toLowerCase();
   COLUMNS.forEach(col => {
     const cardsWrap = document.querySelector(`[data-col-id="${col.id}"]`);
@@ -806,6 +807,13 @@ async function enterApp(user) {
     document.getElementById('loadingOverlay').style.display = 'none';
     document.getElementById('appScreen').style.display = 'block';
     initKanbanScroll();
+    const savedSearch = sessionStorage.getItem('kanbanSearch');
+    if (savedSearch) {
+      const searchEl = document.getElementById('searchInput');
+      searchEl.value = savedSearch;
+      document.getElementById('searchClear').style.display = 'flex';
+      filterCards(savedSearch);
+    }
   }
 }
 

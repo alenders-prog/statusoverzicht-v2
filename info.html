@@ -650,13 +650,13 @@ function renderForm() {
 
         const opmTitle = document.createElement('div');
         opmTitle.className = 'status-section-title';
-        opmTitle.style.cssText = 'border-bottom:2px solid #888;color:#888;margin-bottom:6px;display:flex;justify-content:space-between;align-items:flex-end;';
+        opmTitle.style.cssText = 'border-bottom:2px solid #4a4a4a;color:#4a4a4a;margin-bottom:6px;display:flex;justify-content:space-between;align-items:flex-end;';
         const opmTitleLabel = document.createElement('span');
         opmTitleLabel.textContent = 'Opmerkingen';
         const opmTs = document.createElement('sub');
-        opmTs.style.cssText = 'font-size:0.62rem;font-family:"DM Mono",monospace;font-weight:400;color:#aaa;letter-spacing:0;text-transform:none;line-height:1;padding-bottom:2px;';
-        const tsVal = infoData._opmerkingen_gewijzigd;
-        opmTs.textContent = tsVal ? 'Laatste wijziging: ' + formatOpmTs(tsVal) : '—';
+        opmTs.style.cssText = 'font-size:0.78rem;font-family:"Fraunces",serif;font-weight:600;color:#4a4a4a;letter-spacing:0.08em;text-transform:uppercase;line-height:1;padding-bottom:2px;';
+        const tsVal = statusData.opmerkingen_gewijzigd;
+        opmTs.textContent = tsVal ? formatOpmTs(tsVal) : '—';
         opmTitle.appendChild(opmTitleLabel);
         opmTitle.appendChild(opmTs);
         const opmArea = document.createElement('textarea');
@@ -664,14 +664,12 @@ function renderForm() {
         opmArea.value = statusData.opmerkingen || '';
         opmArea.oninput = () => {
           const ts = new Date().toISOString();
-          infoData._opmerkingen_gewijzigd = ts;
-          opmTs.textContent = 'Laatste wijziging: ' + formatOpmTs(ts);
+          opmTs.textContent = formatOpmTs(ts);
           saveStatusField('opmerkingen', opmArea.value || null);
-          saveInfoDataDebounced();
+          saveStatusField('opmerkingen_gewijzigd', ts);
         };
         const opmBlock = document.createElement('div');
         opmBlock.appendChild(opmTitle);
-        opmBlock.appendChild(opmTs);
         opmBlock.appendChild(opmArea);
         leftGroup.appendChild(opmBlock);
 
