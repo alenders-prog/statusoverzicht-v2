@@ -248,7 +248,7 @@ const STATUS_SECTIONS = [
 const params = new URLSearchParams(window.location.search);
 const dossierId = params.get('id');
 let infoData = {}, statusData = {};
-let saveTimer = null, statusSaveTimer = null, statusSaveQueue = {};
+let saveTimer = null, statusSaveTimer = null, statusSaveQueue = {}, infoDataSaveTimer = null;
 let activeTab = params.get('tab') === 'klantstatus' ? 'klantstatus' : 'klantgegevens';
 let alarmSettings = {};
 
@@ -371,6 +371,19 @@ function refreshStatusAlarms() {
     });
   });
   refreshPhaseHighlight();
+}
+
+function formatOpmTs(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    + ' ' + d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+}
+
+function saveInfoDataDebounced() {
+  clearTimeout(infoDataSaveTimer);
+  infoDataSaveTimer = setTimeout(() => {
+    db.from('dossiers').update({ info_data: JSON.stringify(infoData) }).eq('id', dossierId);
+  }, 700);
 }
 
 function saveStatusField(key, value) {
@@ -637,14 +650,28 @@ function renderForm() {
 
         const opmTitle = document.createElement('div');
         opmTitle.className = 'status-section-title';
-        opmTitle.style.cssText = 'border-bottom:2px solid #888;color:#888;margin-bottom:6px;';
-        opmTitle.textContent = 'Opmerkingen';
+        opmTitle.style.cssText = 'border-bottom:2px solid #888;color:#888;margin-bottom:6px;display:flex;justify-content:space-between;align-items:flex-end;';
+        const opmTitleLabel = document.createElement('span');
+        opmTitleLabel.textContent = 'Opmerkingen';
+        const opmTs = document.createElement('sub');
+        opmTs.style.cssText = 'font-size:0.62rem;font-family:"DM Mono",monospace;font-weight:400;color:#aaa;letter-spacing:0;text-transform:none;line-height:1;padding-bottom:2px;';
+        const tsVal = infoData._opmerkingen_gewijzigd;
+        opmTs.textContent = tsVal ? 'Laatste wijziging: ' + formatOpmTs(tsVal) : '—';
+        opmTitle.appendChild(opmTitleLabel);
+        opmTitle.appendChild(opmTs);
         const opmArea = document.createElement('textarea');
         opmArea.className = 'status-opmerkingen';
         opmArea.value = statusData.opmerkingen || '';
-        opmArea.oninput = () => saveStatusField('opmerkingen', opmArea.value || null);
+        opmArea.oninput = () => {
+          const ts = new Date().toISOString();
+          infoData._opmerkingen_gewijzigd = ts;
+          opmTs.textContent = 'Laatste wijziging: ' + formatOpmTs(ts);
+          saveStatusField('opmerkingen', opmArea.value || null);
+          saveInfoDataDebounced();
+        };
         const opmBlock = document.createElement('div');
         opmBlock.appendChild(opmTitle);
+        opmBlock.appendChild(opmTs);
         opmBlock.appendChild(opmArea);
         leftGroup.appendChild(opmBlock);
 
