@@ -138,6 +138,9 @@ td.editing-cell .date-edit-wrap input[type="date"] { display: block; min-width: 
 .info-link-btn.complete:hover { background: var(--phase2); color: white; }
 .info-link-btn.urgent { background: #f5d5d5; border-color: #a81c1c; color: #a81c1c; }
 .info-link-btn.urgent:hover { background: #a81c1c; color: white; }
+.info-link-btn.muted { border-color: #bbb; color: #aaa; background: #f4f4f4; pointer-events: none; cursor: default; }
+.info-link-btn.muted:hover { background: #f4f4f4; color: #aaa; }
+.toev-col-btn { text-align: center; white-space: nowrap; }
 .add-row-btn { display: flex; align-items: center; gap: 8px; padding: 10px 32px; cursor: pointer; background: var(--cream); border: none; border-top: 1.5px dashed var(--rule); width: 100%; text-align: left; font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--accent); letter-spacing: 0.06em; transition: background 0.15s; position: sticky; left: 0; }
 .add-row-btn:hover { background: var(--accent-soft); }
 .add-row-btn span { font-size: 1.2rem; line-height: 1; }
@@ -204,6 +207,7 @@ td.editing-cell .date-edit-wrap input[type="date"] { display: block; min-width: 
     <div class="header-actions">
       <span id="userEmail"></span>
       <button class="btn btn-ghost" onclick="exportCSV()">↓ Export CSV</button>
+      <button class="btn btn-ghost" onclick="window.location.href='toevoegingen.html'">Toevoegingen</button>
       <button class="btn btn-ghost" onclick="window.location.href='settings.html'">Instellingen</button>
       <button class="btn btn-ghost" onclick="signOut()">Uitloggen</button>
     </div>
@@ -236,8 +240,7 @@ td.editing-cell .date-edit-wrap input[type="date"] { display: block; min-width: 
           <th class="ph-blank" style="width:36px;position:sticky;left:0;z-index:12;"></th>
           <th class="ph-blank" style="width:36px;position:sticky;left:36px;z-index:12;"></th>
           <th class="ph-blank" style="min-width:150px;position:sticky;left:72px;z-index:12;"></th>
-          <th class="ph1" id="ph-header-ph1" colspan="2" onclick="togglePhase('ph1')" title="Klik om in/uit te klappen">Toevoegingen</th>
-          <th class="ph-a" id="ph-header-pha" colspan="6" onclick="togglePhase('pha')" title="Klik om in/uit te klappen">Klanten 1e fase</th>
+          <th class="ph-a" id="ph-header-pha" colspan="7" onclick="togglePhase('pha')" title="Klik om in/uit te klappen">Klanten 1e fase</th>
           <th class="ph2" id="ph-header-phc" colspan="3" onclick="togglePhase('phc')" title="Klik om in/uit te klappen">Controle Advocaat</th>
           <th class="ph-c" id="ph-header-ph2" colspan="3" onclick="togglePhase('ph2')" title="Klik om in/uit te klappen">Klanten concepten</th>
           <th class="ph-g" id="ph-header-phg" colspan="3" onclick="togglePhase('phg')" title="Klik om in/uit te klappen">Getekend</th>
@@ -251,44 +254,42 @@ td.editing-cell .date-edit-wrap input[type="date"] { display: block; min-width: 
           <th class="ph-blank" style="width:36px;background:var(--ink);"></th>
           <th class="ph-blank" style="width:36px;background:var(--ink);"></th>
           <th class="ch-klant" onclick="sortTable(0)">Klant</th>
-          <th class="ch1" data-phase="ph1" onclick="sortTable(1)">Aangevraagd</th>
-          <th class="ch1" data-phase="ph1" onclick="sortTable(2)">Bevestigd</th>
-          <th class="phase-placeholder-th" data-phase="ph1" style="display:none"></th>
-          <th class="ch-a" data-phase="pha" onclick="sortTable(3)">Klant gemaild</th>
+          <th class="ch-a" data-phase="pha">Toevoegingen</th>
+          <th class="ch-a" data-phase="pha" onclick="sortTable(2)">Klant gemaild</th>
           <th class="ch-a" style="min-width:90px;">Info compleet</th>
-          <th class="ch-a" data-phase="pha" onclick="sortTable(4)">Factuur betaald</th>
-          <th class="ch-a" data-phase="pha" onclick="sortTable(5)">Datum Afspraak</th>
-          <th class="ch-a" data-phase="pha" onclick="sortTable(6)">Actie voor</th>
-          <th class="ch-a" data-phase="pha" onclick="sortTable(7)">1e concept</th>
+          <th class="ch-a" data-phase="pha" onclick="sortTable(3)">Factuur betaald</th>
+          <th class="ch-a" data-phase="pha" onclick="sortTable(4)">Datum Afspraak</th>
+          <th class="ch-a" data-phase="pha" onclick="sortTable(5)">Actie voor</th>
+          <th class="ch-a" data-phase="pha" onclick="sortTable(6)">1e concept</th>
           <th class="phase-placeholder-th" data-phase="pha" style="display:none"></th>
-          <th class="ch2" data-phase="phc" onclick="sortTable(8)">Ter controle</th>
-          <th class="ch2" data-phase="phc" onclick="sortTable(9)">Antwoord</th>
-          <th class="ch2" data-phase="phc" onclick="sortTable(10)">Verwerkt</th>
+          <th class="ch2" data-phase="phc" onclick="sortTable(7)">Ter controle</th>
+          <th class="ch2" data-phase="phc" onclick="sortTable(8)">Antwoord</th>
+          <th class="ch2" data-phase="phc" onclick="sortTable(9)">Verwerkt</th>
           <th class="phase-placeholder-th" data-phase="phc" style="display:none"></th>
-          <th class="ch-c" data-phase="ph2" onclick="sortTable(11)">Concepten verstuurd</th>
-          <th class="ch-c" data-phase="ph2" onclick="sortTable(12)">Reactie ontvangen</th>
-          <th class="ch-c" data-phase="ph2" onclick="sortTable(13)">Concepten akkoord</th>
+          <th class="ch-c" data-phase="ph2" onclick="sortTable(10)">Concepten verstuurd</th>
+          <th class="ch-c" data-phase="ph2" onclick="sortTable(11)">Reactie ontvangen</th>
+          <th class="ch-c" data-phase="ph2" onclick="sortTable(12)">Concepten akkoord</th>
           <th class="phase-placeholder-th" data-phase="ph2" style="display:none"></th>
-          <th class="ch-g" data-phase="phg" onclick="sortTable(14)">Klanten getekend</th>
-          <th class="ch-g" data-phase="phg" onclick="sortTable(15)">Aktes compleet</th>
-          <th class="ch-g" data-phase="phg" onclick="sortTable(16)">Verstuurd Advocaat</th>
+          <th class="ch-g" data-phase="phg" onclick="sortTable(13)">Klanten getekend</th>
+          <th class="ch-g" data-phase="phg" onclick="sortTable(14)">Aktes compleet</th>
+          <th class="ch-g" data-phase="phg" onclick="sortTable(15)">Verstuurd Advocaat</th>
           <th class="phase-placeholder-th" data-phase="phg" style="display:none"></th>
-          <th class="ch3" data-phase="ph3" onclick="sortTable(17)">Belafspraak</th>
-          <th class="ch3" data-phase="ph3" onclick="sortTable(18)">Rechtbank</th>
+          <th class="ch3" data-phase="ph3" onclick="sortTable(16)">Belafspraak</th>
+          <th class="ch3" data-phase="ph3" onclick="sortTable(17)">Rechtbank</th>
           <th class="phase-placeholder-th" data-phase="ph3" style="display:none"></th>
-          <th class="ch-rb" data-phase="phrb" onclick="sortTable(19)">Beschikking</th>
-          <th class="ch-rb" data-phase="phrb" onclick="sortTable(20)">Verstuurd klanten</th>
-          <th class="ch-rb" data-phase="phrb" onclick="sortTable(21)">Akkoord klanter</th>
+          <th class="ch-rb" data-phase="phrb" onclick="sortTable(18)">Beschikking</th>
+          <th class="ch-rb" data-phase="phrb" onclick="sortTable(19)">Verstuurd klanten</th>
+          <th class="ch-rb" data-phase="phrb" onclick="sortTable(20)">Akkoord klanter</th>
           <th class="phase-placeholder-th" data-phase="phrb" style="display:none"></th>
-          <th class="ch4" data-phase="ph4" onclick="sortTable(22)">Verstuurd gemeente</th>
-          <th class="ch4" data-phase="ph4" onclick="sortTable(23)">Inschrijving ontvangen</th>
+          <th class="ch4" data-phase="ph4" onclick="sortTable(21)">Verstuurd gemeente</th>
+          <th class="ch4" data-phase="ph4" onclick="sortTable(22)">Inschrijving ontvangen</th>
           <th class="phase-placeholder-th" data-phase="ph4" style="display:none"></th>
-          <th class="ch5" data-phase="ph5" onclick="sortTable(24)">Ingelicht en beeindigd</th>
-          <th class="ch5" data-phase="ph5" onclick="sortTable(25)">Vergoeding aangevraagd</th>
-          <th class="ch5" data-phase="ph5" onclick="sortTable(26)">Vergoeding ontvangen</th>
-          <th class="ch5" data-phase="ph5" onclick="sortTable(27)">ZOZA afgerond</th>
+          <th class="ch5" data-phase="ph5" onclick="sortTable(23)">Ingelicht en beeindigd</th>
+          <th class="ch5" data-phase="ph5" onclick="sortTable(24)">Vergoeding aangevraagd</th>
+          <th class="ch5" data-phase="ph5" onclick="sortTable(25)">Vergoeding ontvangen</th>
+          <th class="ch5" data-phase="ph5" onclick="sortTable(26)">ZOZA afgerond</th>
           <th class="phase-placeholder-th" data-phase="ph5" style="display:none"></th>
-          <th class="ch-o" id="ch-opmerkingen" data-phase="pho" onclick="sortTable(28)">Opmerkingen</th>
+          <th class="ch-o" id="ch-opmerkingen" data-phase="pho" onclick="sortTable(27)">Opmerkingen</th>
           <th class="phase-placeholder-th" data-phase="pho" style="display:none"></th>
         </tr>
       </thead>
@@ -317,14 +318,14 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const COL_TYPES = ['text','date','date','yn','yn','date','date','date','date','date','date','date','date','date','date','yn','date','date','date','date','date','date','date','date','date','date','date','date','text'];
-const COL_KEYS  = ['klant','aangevraagd','bevestigd','gemaild','factuur_betaald','datum_afspraak','actie_voor','eerste_concept','ter_controle','antwoord','naar_klanten','afspraak','reactie_ontvangen','concepten_akkoord','akkoord_klanten','docs_compleet','docs_verstuurd','belafspraak','rechtbank','beschikking','verstuurd_klanten','akkoord_klanter','verstuurd_gemeente','inschrijving_ontvangen','beeindigd','vergoeding_aangevraagd','vergoeding_ontvangen','zoza_afgerond','opmerkingen'];
+const COL_TYPES = ['text','toevoeging_btn','yn','yn','date','date','date','date','date','date','date','date','date','date','yn','date','date','date','date','date','date','date','date','date','date','date','date','text'];
+const COL_KEYS  = ['klant','toevoeging_btn','gemaild','factuur_betaald','datum_afspraak','actie_voor','eerste_concept','ter_controle','antwoord','naar_klanten','afspraak','reactie_ontvangen','concepten_akkoord','akkoord_klanten','docs_compleet','docs_verstuurd','belafspraak','rechtbank','beschikking','verstuurd_klanten','akkoord_klanter','verstuurd_gemeente','inschrijving_ontvangen','beeindigd','vergoeding_aangevraagd','vergoeding_ontvangen','zoza_afgerond','opmerkingen'];
 
-const PHASE_COLS = { ph1:[1,2], pha:[3,4,5,6,7], phc:[8,9,10], ph2:[11,12,13], phg:[14,15,16], ph3:[17,18], phrb:[19,20,21], ph4:[22,23], ph5:[24,25,26,27], pho:[28] };
-const PHASE_COLSPAN_NORMAL    = { ph1:2, pha:6, phc:3, ph2:3, phg:3, ph3:2, phrb:3, ph4:2, ph5:4, pho:1 };
-const PHASE_COLSPAN_COLLAPSED = { ph1:1, pha:2, phc:1, ph2:1, phg:1, ph3:1, phrb:1, ph4:1, ph5:1, pho:1 };
-const PHASE_END = { pha:7, phc:10, ph2:13, phg:16, ph3:18, phrb:21, ph4:23, ph5:27, pho:28 };
-const CI_TO_PHASE = {1:'ph1',2:'ph1',3:'pha',4:'pha',5:'pha',6:'pha',7:'pha',8:'phc',9:'phc',10:'phc',11:'ph2',12:'ph2',13:'ph2',14:'phg',15:'phg',16:'phg',17:'ph3',18:'ph3',19:'phrb',20:'phrb',21:'phrb',22:'ph4',23:'ph4',24:'ph5',25:'ph5',26:'ph5',27:'ph5',28:'pho'};
+const PHASE_COLS = { pha:[1,2,3,4,5,6], phc:[7,8,9], ph2:[10,11,12], phg:[13,14,15], ph3:[16,17], phrb:[18,19,20], ph4:[21,22], ph5:[23,24,25,26], pho:[27] };
+const PHASE_COLSPAN_NORMAL    = { pha:7, phc:3, ph2:3, phg:3, ph3:2, phrb:3, ph4:2, ph5:4, pho:1 };
+const PHASE_COLSPAN_COLLAPSED = { pha:2, phc:1, ph2:1, phg:1, ph3:1, phrb:1, ph4:1, ph5:1, pho:1 };
+const PHASE_END = { pha:6, phc:9, ph2:12, phg:15, ph3:17, phrb:20, ph4:22, ph5:26, pho:27 };
+const CI_TO_PHASE = {1:'pha',2:'pha',3:'pha',4:'pha',5:'pha',6:'pha',7:'phc',8:'phc',9:'phc',10:'ph2',11:'ph2',12:'ph2',13:'phg',14:'phg',15:'phg',16:'ph3',17:'ph3',18:'phrb',19:'phrb',20:'phrb',21:'ph4',22:'ph4',23:'ph5',24:'ph5',25:'ph5',26:'ph5',27:'pho'};
 
 let collapsedPhases = new Set(JSON.parse(localStorage.getItem('collapsedPhases') || '[]'));
 let rows = [], sortCol = -1, sortDir = 1, currentFilter = 'all', rowToDelete = null, saveTimer = null;
@@ -430,7 +431,7 @@ function isActieVoorOverdue(row) { const val = row.actie_voor; if (!val || val =
 function isGeneralOverdue(row, key, prevKey) { if (row[key]) return false; return !!row[prevKey]; }
 function isAfspraakOverdue(row) { if (row.afspraak) return false; if (row.naar_klanten && row.naar_klanten !== 'n.v.t.') return true; if (row.naar_klanten === 'n.v.t.') return !!row.eerste_concept; return false; }
 
-function isBevestigdOverdue(row) { if (row.bevestigd) return false; const a = row.aangevraagd; if (!a || a === 'n.v.t.') return false; const days = parseInt(alarmSettings.reactie_docs_teurlings) || 0; if (!days) return false; const d = new Date(a); d.setDate(d.getDate() + days); return d < new Date(); }
+function isBevestigdOverdue(row) { const days = parseInt(alarmSettings.reactie_docs_teurlings) || 0; if (!days) return false; function po(sfx) { if (row['bevestigd'+sfx]) return false; const a = row['aangevraagd'+sfx]; if (!a || a === 'n.v.t.') return false; const d = new Date(a); d.setDate(d.getDate() + days); return d < new Date(); } if (row.toevoeging_a === 1 && po('_a')) return true; if (row.toevoeging_b === 1 && po('_b')) return true; return false; }
 function isReactieOverdue(row) { if (row.reactie_ontvangen) return false; const a = row.afspraak; if (!a || a === 'n.v.t.') return false; const days = parseInt(alarmSettings.reactie_klanten_concepten) || 0; if (!days) return false; const d = new Date(a); d.setDate(d.getDate() + days); return d < new Date(); }
 function isConceptenAkkoordOverdue(row) { if (row.concepten_akkoord) return false; const r = row.reactie_ontvangen; if (!r || r === 'n.v.t.') return false; const days = parseInt(alarmSettings.reactie_klanten_concepten) || 0; if (!days) return false; const d = new Date(r); d.setDate(d.getDate() + days); return d < new Date(); }
 function isTerControleOverdue(row) { if (row.ter_controle) return false; return !!(row.eerste_concept && row.eerste_concept !== 'n.v.t.'); }
@@ -446,7 +447,7 @@ function isAkkoordKlanterOverdue(row) { if (row.akkoord_klanter) return false; c
 function isVerstuurGemeenteOverdue(row) { if (row.verstuurd_gemeente) return false; return !!(row.akkoord_klanter && row.akkoord_klanter !== 'n.v.t.'); }
 function isInschrijvingOverdue(row) { if (row.inschrijving_ontvangen) return false; const v = row.verstuurd_gemeente; if (!v || v === 'n.v.t.') return false; const days = parseInt(alarmSettings.reactie_inschrijving_gemeente) || 0; if (!days) return false; const d = new Date(v); d.setDate(d.getDate() + days); return d < new Date(); }
 function isBeeindigdOverdue(row) { if (row.beeindigd) return false; return !!(row.inschrijving_ontvangen && row.inschrijving_ontvangen !== 'n.v.t.'); }
-function isVergoedingAangevraagdOverdue(row) { if (row.vergoeding_aangevraagd) return false; return !!(row.beeindigd); }
+function isVergoedingAangevraagdOverdue(row) { if (row.vergoeding_aangevraagd) return false; return row.kanban_column === 'gemeente' || row.kanban_column === 'afronding' || !!(row.verstuurd_gemeente && row.verstuurd_gemeente !== 'n.v.t.') || !!(row.beeindigd && row.beeindigd !== 'n.v.t.'); }
 function isVergoedingOntvangenOverdue(row) { if (row.vergoeding_ontvangen) return false; const a = row.vergoeding_aangevraagd; if (!a || a === 'n.v.t.') return false; const days = parseInt(alarmSettings.reactie_vergoeding_rvr) || 0; if (!days) return false; const d = new Date(a); d.setDate(d.getDate() + days); return d < new Date(); }
 function isZozaOverdue(row) { if (row.zoza_afgerond) return false; return !!(row.beeindigd && row.beeindigd !== 'n.v.t.' && row.vergoeding_ontvangen); }
 function isDocsUrgent(row) { if (row.docs_compleet === 'ja') return false; return !!(row.akkoord_klanten && row.akkoord_klanten !== 'n.v.t.'); }
@@ -465,7 +466,6 @@ function refreshInfoUrgent(tr, row) { const a = tr.querySelector('[data-key="inf
 function refreshAllAlarms(tr, row, key) {
   if (key === 'actie_voor') refreshAlarm(tr, row, 'actie_voor', isActieVoorOverdue);
   if (key === 'datum_afspraak') refreshInfoUrgent(tr, row);
-  if (key === 'aangevraagd' || key === 'bevestigd') refreshAlarm(tr, row, 'bevestigd', isBevestigdOverdue);
   if (key === 'afspraak' || key === 'reactie_ontvangen') refreshAlarm(tr, row, 'reactie_ontvangen', isReactieOverdue);
   if (key === 'reactie_ontvangen' || key === 'concepten_akkoord') refreshAlarm(tr, row, 'concepten_akkoord', isConceptenAkkoordOverdue);
   if (key === 'eerste_concept' || key === 'ter_controle') refreshAlarm(tr, row, 'ter_controle', isTerControleOverdue);
@@ -496,7 +496,7 @@ async function loadRows() {
 }
 async function saveRow(row) {
   setSyncStatus('saving');
-  const payload = {}; COL_KEYS.forEach(k => { payload[k] = row[k] || null; });
+  const payload = {}; COL_KEYS.forEach(k => { if (k === 'toevoeging_btn') return; payload[k] = row[k] || null; });
   let error;
   if (row.id) { ({ error } = await db.from('dossiers').update(payload).eq('id', row.id)); }
   else { const { data, error: e } = await db.from('dossiers').insert(payload).select().single(); error = e; if (data) row.id = data.id; }
@@ -544,7 +544,7 @@ function renderTable() {
       td.dataset.key = key;
       if (key === 'gemaild' && val === 'nee') td.classList.add('gemaild-nee');
       if (key === 'actie_voor' && isActieVoorOverdue(row)) td.classList.add('alarm-red');
-      if (key === 'bevestigd' && isBevestigdOverdue(row)) td.classList.add('alarm-red');
+      if (key === 'toevoeging_btn') {/* alarm shown via button state */}
       if (key === 'reactie_ontvangen' && isReactieOverdue(row)) td.classList.add('alarm-red');
       if (key === 'concepten_akkoord' && isConceptenAkkoordOverdue(row)) td.classList.add('alarm-red');
       if (key === 'ter_controle' && isTerControleOverdue(row)) td.classList.add('alarm-red');
@@ -582,6 +582,21 @@ function renderTable() {
           docsLink.textContent = 'Docs'; display.appendChild(docsLink);
         }
         td.style.cursor = 'default';
+      } else if (COL_TYPES[ci] === 'toevoeging_btn') {
+        display.innerHTML = ''; display.className = 'cell-display'; display.style.justifyContent = 'center';
+        if (row.id) {
+          const nvt   = (row.toevoeging_a ?? 0) === 0 && (row.toevoeging_b ?? 0) === 0;
+          const alarm = !nvt && isBevestigdOverdue(row);
+          const done  = !nvt &&
+            (row.toevoeging_a !== 1 || !!(row.bevestigd_a && row.bevestigd_a !== 'n.v.t.')) &&
+            (row.toevoeging_b !== 1 || !!(row.bevestigd_b && row.bevestigd_b !== 'n.v.t.'));
+          const btn   = document.createElement(nvt ? 'span' : 'a');
+          btn.className = 'info-link-btn toev-col-btn' + (nvt ? ' muted' : done ? ' complete' : alarm ? ' urgent' : '');
+          btn.textContent = nvt ? 'Geen toevoegingen' : done ? '✓ Toevoegingen' : 'Toevoegingen';
+          if (!nvt) { btn.href = `toevoegingen.html?id=${row.id}`; btn.addEventListener('click', e => e.stopPropagation()); }
+          display.appendChild(btn);
+        }
+        td.style.cursor = 'default';
       } else if (COL_TYPES[ci] === 'yn') {
         control = document.createElement('select');
         control.innerHTML = '<option value="">—</option><option value="ja">Ja</option><option value="nee">Nee</option>';
@@ -617,14 +632,13 @@ function renderTable() {
           e.stopPropagation(); nvtJustClicked = true; rows[idx][key] = 'n.v.t.';
           display.textContent = 'n.v.t.'; display.className = 'cell-display'; exitEdit(td);
           refreshAllAlarms(tr, rows[idx], key);
-          if (key === 'aangevraagd') { ['bevestigd','vergoeding_aangevraagd','vergoeding_ontvangen'].forEach(k => rows[idx][k] = 'n.v.t.'); renderTable(); }
           scheduleSave(rows[idx]);
         };
         dateWrap = document.createElement('div'); dateWrap.className = 'date-edit-wrap';
         dateWrap.appendChild(control); dateWrap.appendChild(nvtBtn);
       } else {
         control = document.createElement('input'); control.type = 'text'; control.value = val;
-        if (ci === 28) control.style.minWidth = '180px';
+        if (ci === 27) control.style.minWidth = '180px';
         control.oninput = () => { rows[idx][key] = control.value; display.textContent = formatDisplay(control.value, ci); display.className = 'cell-display' + (control.value ? '' : ' empty'); scheduleSave(rows[idx]); };
         control.onblur = () => exitEdit(td);
         control.onkeydown = e => { if (e.key === 'Enter' || e.key === 'Escape') control.blur(); };
@@ -649,8 +663,7 @@ function renderTable() {
       }
       tr.appendChild(td);
 
-      if (ci === 2) { const ph = document.createElement('td'); ph.className = 'phase-placeholder-td'; ph.dataset.phase = 'ph1'; ph.style.display = collapsedPhases.has('ph1') ? '' : 'none'; tr.appendChild(ph); }
-      if (ci === 3) {
+      if (ci === 2) {
         const infoTd = document.createElement('td');
         infoTd.style.cssText = 'padding:0 6px;width:56px;text-align:center;'; infoTd.dataset.key = 'info-btn';
         if (row.id) {
@@ -680,10 +693,19 @@ function renderTable() {
 
   if (rows.length === 0) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="30"><div class="empty-state"><svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="#ccc" stroke-width="1.5"><rect x="6" y="8" width="28" height="26" rx="2"/><path d="M13 16h14M13 22h10"/></svg><p>Geen dossiers. Klik op "+ Nieuwe klant" om te beginnen.</p></div></td>`;
+    tr.innerHTML = `<td colspan="29"><div class="empty-state"><svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="#ccc" stroke-width="1.5"><rect x="6" y="8" width="28" height="26" rx="2"/><path d="M13 16h14M13 22h10"/></svg><p>Geen dossiers. Klik op "+ Nieuwe klant" om te beginnen.</p></div></td>`;
     tbody.appendChild(tr);
   }
   updateCount(); applyCollapseState();
+  requestAnimationFrame(syncToevBtnWidths);
+}
+
+function syncToevBtnWidths() {
+  const btns = [...document.querySelectorAll('.toev-col-btn')];
+  if (!btns.length) return;
+  btns.forEach(b => b.style.width = '');          // reset to natural size
+  const max = btns.reduce((m, b) => Math.max(m, b.offsetWidth), 0);
+  btns.forEach(b => b.style.width = max + 'px');  // pin all to widest
 }
 
 function formatDisplay(val, ci) {
@@ -743,7 +765,7 @@ document.getElementById('deleteModal').addEventListener('click', e => { if (e.ta
 
 // ── EXPORT ──
 function exportCSV() {
-  const headers = ['Klant','Aangevraagd','Bevestigd','Klant gemaild','Factuur betaald','Datum afspraak','Actie voor','1e concept','Ter controle','Antwoord','Verwerkt','Concepten verstuurd','Reactie ontvangen','Concepten akkoord','Klanten getekend','Aktes compleet','Verstuurd Advocaat','Belafspraak','Rechtbank','Beschikking','Verstuurd klanten','Akkoord klanter','Verstuurd gemeente','Inschrijving ontvangen','Beeindigd','Vergoeding aangevraagd','Vergoeding ontvangen','ZOZA afgerond','Opmerkingen'];
+  const headers = ['Klant','Toevoegingen','Klant gemaild','Factuur betaald','Datum afspraak','Actie voor','1e concept','Ter controle','Antwoord','Verwerkt','Concepten verstuurd','Reactie ontvangen','Concepten akkoord','Klanten getekend','Aktes compleet','Verstuurd Advocaat','Belafspraak','Rechtbank','Beschikking','Verstuurd klanten','Akkoord klanter','Verstuurd gemeente','Inschrijving ontvangen','Beeindigd','Vergoeding aangevraagd','Vergoeding ontvangen','ZOZA afgerond','Opmerkingen'];
   const csv = [headers.join(';'), ...rows.map(r => COL_KEYS.map(k => `"${(r[k]||'').toString().replace(/"/g,'""')}"`).join(';'))].join('\n');
   const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `statusoverzicht_${new Date().toISOString().slice(0,10)}.csv`; a.click();

@@ -138,10 +138,14 @@ header .subtitle { font-size: 0.7rem; opacity: 0.5; letter-spacing: 0.12em; text
 .card-field-btn-row { justify-content: flex-start; }
 
 /* ── CARD STATUS BUTTONS (Info compleet / Docs compleet) ── */
-.card-status-btn { font-family: 'DM Mono', monospace; font-size: 0.6rem; padding: 2px 8px; border: 1.5px solid #d4771a; border-radius: 3px; color: #d4771a; background: #fce8cc; text-decoration: none; display: inline-block; letter-spacing: 0.04em; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.card-status-btn { font-family: 'DM Mono', monospace; font-size: 0.6rem; padding: 2px 8px; border: 1.5px solid #d4771a; border-radius: 3px; color: #d4771a; background: #fce8cc; text-decoration: none; display: inline-block; letter-spacing: 0.04em; cursor: pointer; transition: all 0.15s; white-space: nowrap; min-width: 8rem; text-align: center; }
 .card-status-btn:hover { background: #d4771a; color: white; }
 .card-status-btn.complete { border-color: #1a6e4a; color: #1a6e4a; background: #d5ede2; }
 .card-status-btn.complete:hover { background: #1a6e4a; color: white; }
+.card-status-btn.urgent { border-color: #b81c1c; color: #b81c1c; background: #fde8e8; }
+.card-status-btn.urgent:hover { background: #b81c1c; color: white; }
+.card-status-btn.muted { border-color: #bbb; color: #aaa; background: #f4f4f4; }
+.card-status-btn.muted:hover { background: #ddd; color: #666; }
 
 /* ── CARD OPMERKINGEN PREVIEW ── */
 .card-opm { font-size: 0.65rem; color: #888; line-height: 1.4; margin-top: 4px; border-top: 1px solid #f0ede7; padding-top: 5px; word-break: break-word; flex: 1; min-height: 0; overflow: hidden; }
@@ -226,6 +230,11 @@ td.editing-cell .date-edit-wrap input[type="date"] { display: block; min-width: 
 .info-link-btn.complete:hover { background: var(--phase2); color: white; }
 .info-link-btn.urgent { background: #f5d5d5; border-color: #a81c1c; color: #a81c1c; }
 .info-link-btn.urgent:hover { background: #a81c1c; color: white; }
+.info-link-btn.muted { border-color: #bbb; color: #aaa; background: #f4f4f4; pointer-events: none; cursor: default; }
+.info-link-btn.muted:hover { background: #f4f4f4; color: #aaa; }
+.card-status-btn.muted { border-color: #bbb; color: #aaa; background: #f4f4f4; pointer-events: none; cursor: default; }
+.card-status-btn.muted:hover { background: #f4f4f4; color: #aaa; }
+.toev-col-btn { text-align: center; white-space: nowrap; }
 .add-row-btn { display: flex; align-items: center; gap: 8px; padding: 10px 32px; cursor: pointer; background: var(--cream); border: none; border-top: 1.5px dashed var(--rule); width: 100%; text-align: left; font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--accent); letter-spacing: 0.06em; transition: background 0.15s; position: sticky; left: 0; }
 .add-row-btn:hover { background: var(--accent-soft); }
 .add-row-btn span { font-size: 1.2rem; line-height: 1; }

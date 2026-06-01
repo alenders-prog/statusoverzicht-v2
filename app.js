@@ -36,9 +36,9 @@ const COLUMNS = [
 const COLUMN_FIELDS = {
   fase1: {
     fields: [
-      { label: 'Toevoeging bevestigd', key: 'bevestigd',  type: 'date' },
-      { label: 'Klant gemaild',        key: 'gemaild',     type: 'yn'   },
+      { key: 'bevestigd', type: 'toevoeging_btn' },
       {                                                     type: 'info_btn' },
+      { label: 'Klant gemaild',        key: 'gemaild',     type: 'yn'   },
       { label: 'Actie voor',          key: 'actie_voor',     type: 'date' },
       { label: '1e concept',          key: 'eerste_concept', type: 'date' },
     ],
@@ -167,13 +167,18 @@ function isActieVoorOverdue(row) {
 }
 
 function isBevestigdOverdue(row) {
-  if (row.bevestigd) return false;
-  const aangevraagd = row.aangevraagd;
-  if (!aangevraagd || aangevraagd === 'n.v.t.') return false;
   const days = parseInt(alarmSettings.reactie_docs_teurlings) || 14;
-  const deadline = new Date(aangevraagd);
-  deadline.setDate(deadline.getDate() + days);
-  return deadline < new Date();
+  function personOverdue(suffix) {
+    if (row['bevestigd' + suffix]) return false;
+    const a = row['aangevraagd' + suffix];
+    if (!a || a === 'n.v.t.') return false;
+    const d = new Date(a);
+    d.setDate(d.getDate() + days);
+    return d < new Date();
+  }
+  if (row.toevoeging_a === 1 && personOverdue('_a')) return true;
+  if (row.toevoeging_b === 1 && personOverdue('_b')) return true;
+  return false;
 }
 
 function isTerControleOverdue(row) {
@@ -183,7 +188,8 @@ function isTerControleOverdue(row) {
 
 function isVergoedingAangevraagdOverdue(row) {
   if (row.vergoeding_aangevraagd) return false;
-  return !!(row.beeindigd && row.beeindigd !== 'n.v.t.');
+  const col = getColumn(row);
+  return col === 'gemeente' || col === 'afronding';
 }
 
 function isVergoedingOntvangenOverdue(row) {
@@ -620,6 +626,19 @@ function renderCard(row, col) {
       link.href = `info.html?id=${row.id}`;
       link.addEventListener('click', e => e.stopPropagation());
       fieldRow.appendChild(link);
+
+    } else if (field.type === 'toevoeging_btn') {
+      fieldRow.className = 'card-field-row card-field-btn-row';
+      const nvt    = (row.toevoeging_a ?? 0) === 0 && (row.toevoeging_b ?? 0) === 0;
+      const alarm  = !nvt && isBevestigdOverdue(row);
+      const done   = !nvt &&
+        (row.toevoeging_a !== 1 || hasValue(row.bevestigd_a)) &&
+        (row.toevoeging_b !== 1 || hasValue(row.bevestigd_b));
+      const btn    = document.createElement(nvt ? 'span' : 'a');
+      btn.className = 'card-status-btn' + (nvt ? ' muted' : done ? ' complete' : alarm ? ' urgent' : '');
+      btn.textContent = nvt ? 'Geen toevoegingen' : done ? '✓ Toevoegingen' : 'Toevoegingen';
+      if (!nvt) { btn.href = `toevoegingen.html?id=${row.id}`; btn.addEventListener('click', e => e.stopPropagation()); }
+      fieldRow.appendChild(btn);
     }
 
     fieldsWrap.appendChild(fieldRow);

@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Toevoegingen</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  /* Scroll wrapper — table scrolls independently, page header stays above */
+  #toevScroll { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 220px); }
+  /* Fixed column widths (Opmerkingen is auto-sized by JS) */
+  #toevTable { table-layout: fixed; border-collapse: separate; border-spacing: 0; }
+  /* cols 1 & 2 (Dossier / Naam) are sized by JS to fit widest cell content */
+  #toevTable thead tr.col-row th:nth-child(3),
+  #toevTable thead tr.col-row th:nth-child(4),
+  #toevTable thead tr.col-row th:nth-child(5),
+  #toevTable thead tr.col-row th:nth-child(6) { width: 140px; }
+  /* cols 7 & 8 (Vergoeding aangevraagd / ontvangen) are sized by JS to fit header + 4pt */
+  #toevTable thead tr.col-row th:nth-child(7),
+  #toevTable thead tr.col-row th:nth-child(8) { padding-left: 4px; padding-right: 4px; }
+  /* Header row — sticky at top of scroll wrapper */
+  #toevTable thead tr.col-row th { position: sticky; top: 0; z-index: 9; border-bottom: 2px solid var(--ink); }
+  #toevTable thead tr.col-row th:nth-child(2) { background: var(--paper); }
+  #toevTable thead th.no-sort { cursor: default; }
+  #toevTable thead th.no-sort:hover { filter: none; }
+  .sort-arrow { margin-left: 4px; opacity: 0.45; font-style: normal; font-size: 0.7em; }
+  .sort-arrow.active { opacity: 1; }
+
+  /* Dossier column — use col-klant / ch-klant but without sticky */
+  #toevTable .ch-klant { position: static; left: auto; z-index: auto; }
+  #toevTable td.col-klant { position: static; left: auto; z-index: auto; }
+
+  /* Alarm cell */
+  .cell-alarm { background: #ffd5d5 !important; }
+
+  /* Date cells — padding:0 so global tbody td rule applies; cell-display handles inner padding */
+  .date-td { cursor: pointer; padding: 0 !important; position: relative; }
+  .date-td .cell-display { min-height: 36px; padding: 8px 10px; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; color: var(--ink); white-space: nowrap; }
+  .date-td .cell-display.nvt { color: #aaa; }
+  .date-td .cell-display.empty { color: transparent; }
+  .date-td .cell-display.empty::after { content: '—'; color: #ccc; }
+
+  /* Text cells (Dossier, Naam) */
+  .text-td { padding: 0 !important; }
+  .text-td .cell-display { min-height: 36px; padding: 8px 10px; display: flex; align-items: center; justify-content: flex-start; font-size: 0.72rem; color: var(--ink); white-space: nowrap; }
+
+  /* Opmerkingen cell */
+  .opm-td { cursor: pointer; padding: 0 !important; }
+  .opm-display { min-height: 36px; padding: 8px 10px; display: flex; align-items: center; justify-content: flex-start; font-size: 0.72rem; color: var(--ink); white-space: nowrap; font-family: 'DM Mono', monospace; }
+  .opm-display.empty { color: transparent; }
+  .opm-display.empty::after { content: '—'; color: #ccc; }
+  .opm-input-field { display: none; width: 100%; min-height: 36px; border: none; outline: none; background: rgba(200,57,10,0.07); font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--ink); padding: 8px 10px; cursor: text; box-sizing: border-box; }
+  .opm-td.editing .opm-display { display: none; }
+  .opm-td.editing .opm-input-field { display: block; }
+</style>
+</head>
+<body>
+
+<div id="loadingOverlay"><div class="spinner"></div><p>Laden...</p></div>
+
+<div id="appScreen" style="display:none;">
+  <header>
+    <h1>Toevoegingen</h1>
+    <span class="subtitle">Statusoverzicht</span>
+    <div class="header-actions">
+      <span id="userEmail"></span>
+      <button class="btn btn-ghost" onclick="history.back()">← Terug</button>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="search-box">
+      <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="#999" stroke-width="2"><circle cx="8" cy="8" r="6"/><path d="M14 14l4 4"/></svg>
+      <input type="text" id="searchInput" placeholder="Zoek op dossiernaam..." oninput="filterRows(this.value);document.getElementById('searchClear').style.display=this.value?'flex':'none'">
+      <button id="searchClear" class="search-clear" style="display:none" onclick="document.getElementById('searchInput').value='';filterRows('');this.style.display='none';document.getElementById('searchInput').focus()">×</button>
+    </div>
+    <button class="filter-tag active" onclick="setFilter('all', this)">Alles</button>
+    <button class="filter-tag" onclick="setFilter('alarm', this)">Actie vereist</button>
+  </div>
+
+  <div style="margin:48px 0;padding:0 24px;">
+
+    <div style="font-family:'Fraunces',serif;font-size:0.95rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;padding-bottom:8px;border-bottom:2px solid var(--ink);margin-bottom:0;">Personen met toevoeging</div>
+
+    <div id="toevScroll">
+      <table id="toevTable" style="width:100%;">
+        <thead><tr id="toevHead" class="col-row"></tr></thead>
+        <tbody id="toevBody"></tbody>
+      </table>
+    </div>
+    <div id="emptyMsg" style="display:none;padding:24px 12px;font-size:0.73rem;color:#999;">Geen toevoegingen gevonden.</div>
+
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL      = 'https://iubmajperipojqtlhwqk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1Ym1hanBlcmlwb2pxdGxod3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0ODM2MzcsImV4cCI6MjA5NDA1OTYzN30.IiUQAGO9rFuSC2LQlFr6dzmQPatCS-N7mjZdJzEQRNs';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Column definitions — colKey maps to the raw dossiers field for alarm checks
+const COLUMNS = [
+  { label: 'Dossier',                colKey: null,                     type: 'string', sortable: true,  thClass: 'ch-klant'                },
+  { label: 'Naam',                   colKey: null,                     type: 'string', sortable: true,  thClass: ''                        },
+  { label: 'Datum aangevraagd',      colKey: 'toev_aangevraagd',       type: 'date',   sortable: true,  thClass: 'ch1',  perPerson: true   },
+  { label: 'Datum ingediend',        colKey: 'aangevraagd',            type: 'date',   sortable: true,  thClass: 'ch1',  perPerson: true   },
+  { label: 'Datum toegekend',        colKey: 'bevestigd',              type: 'date',   sortable: true,  thClass: 'ch1',  perPerson: true   },
+  { label: 'Datum afgewezen',        colKey: 'toev_afgewezen',         type: 'date',   sortable: true,  thClass: 'ch1',  perPerson: true   },
+  { label: 'Vergoeding aangevraagd', colKey: 'vergoeding_aangevraagd', type: 'date',   sortable: true,  thClass: 'ch2',  perPerson: true   },
+  { label: 'Vergoeding ontvangen',   colKey: 'vergoeding_ontvangen',   type: 'date',   sortable: true,  thClass: 'ch2',  perPerson: true   },
+  { label: 'Opmerkingen',            colKey: null,                     type: 'string', sortable: false, thClass: 'ch-o'                    },
+];
+
+let rows = [];
+let sortCol = 0, sortDir = 1;
+let thEls = [];
+let alarmSettings = {};
+let searchQuery = '';
+let currentFilter = 'all';
+
+function rowHasAlarm(row) {
+  return COLUMNS.some(col => col.colKey && isAlarm(col.colKey, row.rawRow, col.perPerson ? row.suffix : ''));
+}
+
+function setFilter(type, btn) {
+  currentFilter = type;
+  document.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable();
+}
+
+function filterRows(q) {
+  searchQuery = (q || '').toLowerCase();
+  renderTable();
+}
+
+function parseInfo(raw) {
+  try { return typeof raw === 'string' ? JSON.parse(raw) : (raw || {}); } catch (e) { return {}; }
+}
+
+function fmtDate(val) {
+  if (!val || val === 'n.v.t.') return val === 'n.v.t.' ? 'n.v.t.' : '—';
+  const d = new Date(val);
+  if (isNaN(d)) return val;
+  return d.toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function deadlinePassed(dateStr, days) {
+  if (!dateStr || dateStr === 'n.v.t.') return false;
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + (days || 0));
+  return d < new Date();
+}
+
+function hasValue(v) { return !!v && v !== 'n.v.t.'; }
+
+// Returns true when the given column key should show an alarm for this person row.
+// suffix is '_a' or '_b' for person-specific columns, '' for shared columns.
+function isAlarm(colKey, rawRow, suffix) {
+  const sfx = suffix || '';
+  // No alarms for a person whose toevoeging has been rejected
+  const afg = rawRow['toev_afgewezen' + sfx];
+  if (afg && afg !== 'n.v.t.') return false;
+  switch (colKey) {
+    case 'aangevraagd': {
+      if (rawRow['aangevraagd' + sfx]) return false;
+      const days = parseInt(alarmSettings.reactie_docs_teurlings) || 14;
+      return deadlinePassed(rawRow['toev_aangevraagd' + sfx], days);
+    }
+    case 'bevestigd': {
+      if (rawRow['bevestigd' + sfx]) return false;
+      const days = parseInt(alarmSettings.reactie_docs_teurlings) || 14;
+      return deadlinePassed(rawRow['aangevraagd' + sfx], days);
+    }
+    case 'vergoeding_aangevraagd':
+      return !rawRow['vergoeding_aangevraagd' + sfx] && (rawRow.kanban_column === 'gemeente' || rawRow.kanban_column === 'afronding' || hasValue(rawRow.verstuurd_gemeente) || hasValue(rawRow.beeindigd));
+    case 'vergoeding_ontvangen': {
+      if (rawRow['vergoeding_ontvangen' + sfx]) return false;
+      const d = parseInt(alarmSettings.reactie_vergoeding_rvr) || 0;
+      return !!d && deadlinePassed(rawRow['vergoeding_aangevraagd' + sfx], d);
+    }
+    default:
+      return false;
+  }
+}
+
+function sortKey(row, col) {
+  if (COLUMNS[col].type === 'date') {
+    const raw = row.raw[col];
+    if (!raw || raw === '—') return '0000-00-00';
+    if (raw === 'n.v.t.') return '9999-99-99';
+    return raw;
+  }
+  return (row.cells[col] || '').toLowerCase();
+}
+
+function updateHeaders() {
+  thEls.forEach((th, i) => {
+    if (!COLUMNS[i].sortable) return;
+    const arrow = th.querySelector('.sort-arrow');
+    if (i === sortCol) {
+      arrow.textContent = sortDir === 1 ? ' ▲' : ' ▼';
+      arrow.classList.add('active');
+    } else {
+      arrow.textContent = ' ▲';
+      arrow.classList.remove('active');
+    }
+  });
+}
+
+// When THIS PERSON's toev_afgewezen is set → set their own vergoeding fields to n.v.t.
+// When cleared → restore their n.v.t. back to empty.
+async function propagateAfgewezen(dossierId, suffix) {
+  const dossierRows = rows.filter(r => r.id === dossierId);
+  if (!dossierRows.length) return;
+  const rawRow = dossierRows[0].rawRow;
+  const afgKey = 'toev_afgewezen' + suffix;
+  const hasDate = !!(rawRow[afgKey] && rawRow[afgKey] !== 'n.v.t.');
+  const fields  = ['vergoeding_aangevraagd' + suffix, 'vergoeding_ontvangen' + suffix];
+  const updates = {};
+  fields.forEach(field => {
+    const cur = rawRow[field];
+    if (hasDate && !hasValue(cur))           updates[field] = 'n.v.t.';
+    else if (!hasDate && cur === 'n.v.t.')   updates[field] = null;
+  });
+  if (!Object.keys(updates).length) return;
+  Object.entries(updates).forEach(([field, val]) => {
+    rawRow[field] = val;
+    // Strip the _a/_b suffix to find the column index
+    const baseKey = field.replace(/_[ab]$/, '');
+    const ci = COLUMNS.findIndex(c => c.colKey === baseKey);
+    // Only update the row belonging to this person
+    dossierRows.filter(r => r.suffix === suffix).forEach(r => { r.raw[ci] = val; r.cells[ci] = fmtDate(val); });
+  });
+  await db.from('dossiers').update(updates).eq('id', dossierId);
+  renderTable();
+}
+
+function renderTable() {
+  const sorted = [...rows]
+    .filter(r => {
+      if (searchQuery && !(r.cells[0] || '').toLowerCase().includes(searchQuery)) return false;
+      if (currentFilter === 'alarm' && !rowHasAlarm(r)) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const ka = sortKey(a, sortCol), kb = sortKey(b, sortCol);
+      return ka < kb ? -sortDir : ka > kb ? sortDir : 0;
+    });
+
+  const tbody = document.getElementById('toevBody');
+  tbody.innerHTML = '';
+
+  sorted.forEach(row => {
+    const tr = document.createElement('tr');
+
+    // Dossier (link) — styled as klant column
+    const dossierTd = document.createElement('td');
+    dossierTd.className = 'col-klant';
+    const dossierDisplay = document.createElement('div');
+    dossierDisplay.className = 'cell-display';
+    const link = document.createElement('a');
+    link.href = `info.html?id=${row.id}`;
+    link.textContent = row.cells[0];
+    link.style.cssText = 'color:inherit;text-decoration:none;';
+    dossierDisplay.appendChild(link);
+    dossierTd.appendChild(dossierDisplay);
+    tr.appendChild(dossierTd);
+
+    // Naam (index 1)
+    const naamTd = document.createElement('td');
+    naamTd.className = 'text-td';
+    const naamDisplay = document.createElement('div');
+    naamDisplay.className = 'cell-display';
+    naamDisplay.textContent = row.cells[1];
+    naamTd.appendChild(naamDisplay);
+    tr.appendChild(naamTd);
+
+    // Date columns (indices 2–7)
+    COLUMNS.slice(2, 8).forEach((col, i) => {
+      const cellIdx      = i + 2;
+      const rawKey       = col.colKey;
+      // perPerson columns use suffixed DB keys (_a or _b); shared columns use rawKey directly
+      const effectiveKey = col.perPerson ? rawKey + row.suffix : rawKey;
+      const rawVal       = row.rawRow[effectiveKey];
+
+      const td = document.createElement('td');
+      td.className = 'date-td';
+      td.dataset.colKey = rawKey;
+      if (rawKey && isAlarm(rawKey, row.rawRow, col.perPerson ? row.suffix : '')) td.classList.add('cell-alarm');
+
+      // Display
+      const display = document.createElement('div');
+      const isEmpty = !rawVal || rawVal === '';
+      const isNvt   = rawVal === 'n.v.t.';
+      display.className = 'cell-display' + (isNvt ? ' nvt' : isEmpty ? ' empty' : '');
+      display.textContent = isEmpty ? '' : fmtDate(rawVal);
+
+      // Date-edit popup (hidden by default via style.css .date-edit-wrap)
+      const dateInput = document.createElement('input');
+      dateInput.type = 'date';
+      dateInput.value = (!rawVal || isNvt) ? new Date().toISOString().slice(0,10) : rawVal;
+
+      const nvtBtn = document.createElement('button');
+      nvtBtn.className = 'nvt-btn';
+      nvtBtn.textContent = 'n.v.t.';
+
+      const dateWrap = document.createElement('div');
+      dateWrap.className = 'date-edit-wrap';
+      dateWrap.appendChild(dateInput);
+      dateWrap.appendChild(nvtBtn);
+
+      td.appendChild(display);
+      td.appendChild(dateWrap);
+
+      const exitDateEdit = () => td.classList.remove('editing-cell');
+
+      td.onclick = () => {
+        document.querySelectorAll('.date-td.editing-cell').forEach(o => { if (o !== td) o.classList.remove('editing-cell'); });
+        td.classList.add('editing-cell');
+        dateInput.focus();
+        dateInput.showPicker?.();
+      };
+      dateInput.addEventListener('click', e => e.stopPropagation());
+
+      dateInput.onchange = async () => {
+        const v = dateInput.value;
+        row.rawRow[effectiveKey] = v;
+        row.cells[cellIdx] = fmtDate(v);
+        row.raw[cellIdx]   = v;
+        display.textContent = fmtDate(v);
+        display.className = 'cell-display' + (v ? '' : ' empty');
+        exitDateEdit();
+        refreshRowAlarms(tr, row);
+        await db.from('dossiers').update({ [effectiveKey]: v || null }).eq('id', row.id);
+        if (rawKey === 'toev_afgewezen') await propagateAfgewezen(row.id, row.suffix);
+      };
+      dateInput.onblur = () => exitDateEdit();
+
+      nvtBtn.onmousedown = e => e.preventDefault();
+      nvtBtn.onclick = async e => {
+        e.stopPropagation();
+        row.rawRow[effectiveKey] = 'n.v.t.';
+        row.cells[cellIdx] = 'n.v.t.';
+        row.raw[cellIdx]   = 'n.v.t.';
+        display.textContent = 'n.v.t.';
+        display.className = 'cell-display nvt';
+        exitDateEdit();
+        refreshRowAlarms(tr, row);
+        await db.from('dossiers').update({ [effectiveKey]: 'n.v.t.' }).eq('id', row.id);
+        if (rawKey === 'toev_afgewezen') await propagateAfgewezen(row.id, row.suffix);
+      };
+
+      tr.appendChild(td);
+    });
+
+    // Opmerkingen (editable, same style as list view)
+    const opmTd = document.createElement('td');
+    opmTd.className = 'opm-td';
+    opmTd.style.cssText = 'min-width:180px;border-bottom:1px solid var(--rule);';
+
+    const display = document.createElement('div');
+    display.className = 'opm-display' + (row.opmerkingen ? '' : ' empty');
+    display.textContent = row.opmerkingen || '';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'opm-input-field';
+    input.value = row.opmerkingen || '';
+
+    opmTd.onclick = () => {
+      opmTd.classList.add('editing');
+      input.focus();
+      input.select();
+    };
+    input.oninput = () => {
+      display.textContent = input.value;
+      display.className = 'opm-display' + (input.value ? '' : ' empty');
+      rows.filter(r => r.id === row.id).forEach(r => r.opmerkingen = input.value);
+      syncOpmWidth();
+    };
+    input.onblur = async () => {
+      opmTd.classList.remove('editing');
+      await db.from('dossiers').update({ opmerkingen_toevoeging: input.value || null }).eq('id', row.id);
+    };
+    input.onkeydown = e => { if (e.key === 'Enter' || e.key === 'Escape') input.blur(); };
+
+    opmTd.appendChild(display);
+    opmTd.appendChild(input);
+    tr.appendChild(opmTd);
+
+    tbody.appendChild(tr);
+  });
+
+  updateHeaders();
+  requestAnimationFrame(syncOpmWidth);
+}
+
+function refreshRowAlarms(tr, row) {
+  tr.querySelectorAll('.date-td[data-col-key]').forEach(td => {
+    const key = td.dataset.colKey;
+    const col = COLUMNS.find(c => c.colKey === key);
+    td.classList.toggle('cell-alarm', !!isAlarm(key, row.rawRow, col && col.perPerson ? row.suffix : ''));
+  });
+}
+
+// Set Dossier (col 0) and Naam (col 1) widths to the widest cell content across all rows.
+// Called once after initial data load; uses all rows so filtering never shrinks the columns.
+function sizeFlexColumns() {
+  const measurer = document.createElement('span');
+  measurer.style.cssText = "position:absolute;visibility:hidden;white-space:nowrap;font-family:'DM Mono',monospace;font-size:0.72rem;top:-9999px;left:-9999px;";
+  document.body.appendChild(measurer);
+  const PAD = 20; // matches .cell-display padding: 8px 10px → 10px per side
+  [0, 1].forEach(ci => {
+    let maxW = 0;
+    rows.forEach(row => {
+      measurer.textContent = row.cells[ci] || '';
+      maxW = Math.max(maxW, measurer.offsetWidth);
+    });
+    thEls[ci].style.width = (maxW + PAD) + 'px';
+  });
+  document.body.removeChild(measurer);
+}
+
+function syncOpmWidth() {
+  const MIN_WIDTH = 180;
+  const measure = document.createElement('div');
+  measure.style.cssText = "position:absolute;visibility:hidden;white-space:nowrap;font-family:'DM Mono',monospace;font-size:0.72rem;padding:8px 10px;top:-9999px;left:-9999px;";
+  document.body.appendChild(measure);
+
+  let maxW = MIN_WIDTH;
+  document.querySelectorAll('.opm-display').forEach(el => {
+    measure.textContent = el.textContent || '';
+    maxW = Math.max(maxW, measure.offsetWidth);
+  });
+  document.body.removeChild(measure);
+
+  document.querySelectorAll('.opm-td').forEach(td => {
+    td.style.minWidth = maxW + 'px';
+    td.style.width    = maxW + 'px';
+  });
+  const opmTh = document.querySelector('#toevHead th.no-sort');
+  if (opmTh) opmTh.style.minWidth = maxW + 'px';
+}
+
+async function init() {
+  const { data: { session } } = await db.auth.getSession();
+  document.getElementById('loadingOverlay').style.display = 'none';
+  if (!session) { window.location.href = 'index.html'; return; }
+  document.getElementById('userEmail').textContent = session.user.email;
+  document.getElementById('appScreen').style.display = 'block';
+
+  // Load alarm settings
+  const { data: alarmData } = await db.from('alarmsettings').select('settings').eq('id', 'main').maybeSingle();
+  if (alarmData && alarmData.settings) alarmSettings = alarmData.settings;
+
+  // Build headers
+  const headRow = document.getElementById('toevHead');
+  COLUMNS.forEach((col, i) => {
+    const th = document.createElement('th');
+    if (col.thClass) th.classList.add(col.thClass);
+    if (col.sortable) {
+      th.innerHTML = col.label + '<span class="sort-arrow"> ▲</span>';
+      th.onclick = () => {
+        if (sortCol === i) sortDir = -sortDir; else { sortCol = i; sortDir = 1; }
+        renderTable();
+      };
+    } else {
+      th.textContent = col.label;
+      th.classList.add('no-sort');
+    }
+    headRow.appendChild(th);
+    thEls.push(th);
+  });
+
+  // Size vergoeding columns (7 & 8, indices 6 & 7) to fit their header label + 4pt.
+  // Uses a hidden span with the same font as the TH — avoids any table-layout side effects.
+  {
+    const m = document.createElement('span');
+    m.style.cssText = "position:absolute;visibility:hidden;white-space:nowrap;top:-9999px;left:-9999px;" +
+      "font-family:'DM Mono',monospace;font-size:0.65rem;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;";
+    document.body.appendChild(m);
+    const pt4 = 6;  // 4pt ≈ 5.3px → 6px
+    const pad = 8;  // 4px left + 4px right (CSS override for these columns)
+    [[6, COLUMNS[6].label], [7, COLUMNS[7].label]].forEach(([i, label]) => {
+      m.textContent = label;
+      const labelW = m.offsetWidth;
+      m.style.fontSize = (0.65 * 0.7) + 'rem';  // sort arrow is 0.7em of TH
+      m.textContent = ' ▲';
+      const arrowW = m.offsetWidth + 4;           // +4px for margin-left on .sort-arrow
+      m.style.fontSize = '0.65rem';               // reset for next iteration
+      thEls[i].style.width = (labelW + arrowW + pad + pt4) + 'px';
+    });
+    document.body.removeChild(m);
+  }
+
+  const filterId = new URLSearchParams(location.search).get('id');
+
+  // Fetch all dossiers with toevoeging — filtering is done client-side via the search box
+  const { data } = await db.from('dossiers')
+    .select('id, klant, info_data, kanban_column, toevoeging_a, toevoeging_b, toev_aangevraagd_a, toev_aangevraagd_b, aangevraagd_a, aangevraagd_b, bevestigd_a, bevestigd_b, toev_afgewezen_a, toev_afgewezen_b, vergoeding_aangevraagd_a, vergoeding_aangevraagd_b, vergoeding_ontvangen_a, vergoeding_ontvangen_b, beeindigd, verstuurd_gemeente, opmerkingen_toevoeging')
+    .or('toevoeging_a.eq.1,toevoeging_b.eq.1')
+    .order('klant');
+
+  (data || []).forEach(row => {
+    const klant = parseInfo(row.info_data)._klant || {};
+    const dossierName = row.klant || '(Naamloos)';
+
+    [['toevoeging_a', klant.naam_a, '_a'], ['toevoeging_b', klant.naam_b, '_b']].forEach(([col, naam, suffix]) => {
+      if (row[col] !== 1) return;
+      // All 6 date columns are per-person
+      const rawDates = [
+        row['toev_aangevraagd'        + suffix],
+        row['aangevraagd'             + suffix],
+        row['bevestigd'               + suffix],
+        row['toev_afgewezen'          + suffix],
+        row['vergoeding_aangevraagd'  + suffix],
+        row['vergoeding_ontvangen'    + suffix],
+      ];
+      rows.push({
+        id:          row.id,
+        suffix:      suffix,
+        opmerkingen: row.opmerkingen_toevoeging || '',
+        cells:       [dossierName, naam || '—', ...rawDates.map(fmtDate)],
+        raw:         [dossierName, naam || '—', ...rawDates],
+        rawRow:      row,   // full row for alarm checks
+      });
+    });
+  });
+
+  if (rows.length === 0) {
+    document.getElementById('toevTable').style.display = 'none';
+    document.getElementById('emptyMsg').style.display = 'block';
+    return;
+  }
+
+  // Pre-fill search when opened from a kanban button — clear × shows all records
+  if (filterId) {
+    const match = rows.find(r => String(r.id) === filterId);
+    if (match) {
+      const name = match.cells[0];
+      const input = document.getElementById('searchInput');
+      input.value = name;
+      document.getElementById('searchClear').style.display = 'flex';
+      searchQuery = name.toLowerCase();
+    }
+  }
+
+  renderTable();
+  sizeFlexColumns();
+}
+
+init();
+</script>
+</body>
+</html>

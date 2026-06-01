@@ -274,17 +274,6 @@ async function save() {
     return d.b === d.a;
   }) ? 'ja' : 'nee';
 
-  const toevoeging = infoData._klant && infoData._klant.toevoegingen;
-  if (toevoeging === 'Geen') {
-    payload.aangevraagd = 'n.v.t.';
-    payload.bevestigd = 'n.v.t.';
-    payload.vergoeding_aangevraagd = 'n.v.t.';
-    payload.vergoeding_ontvangen = 'n.v.t.';
-  } else if (toevoeging) {
-    const toevCols = ['aangevraagd','bevestigd','vergoeding_aangevraagd','vergoeding_ontvangen'];
-    const { data: curToev } = await db.from('dossiers').select(toevCols.join(',')).eq('id', dossierId).single();
-    toevCols.forEach(col => { if (curToev && curToev[col] === 'n.v.t.') payload[col] = null; });
-  }
   const tColsNee = ['ter_controle','antwoord','naar_klanten',
    'belafspraak','rechtbank','beschikking',
    'verstuurd_klanten','akkoord_klanter','docs_verstuurd',
@@ -378,6 +367,20 @@ function formatOpmTs(iso) {
     + ' ' + d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
 }
 
+const TOEV_COLS = ['aangevraagd','bevestigd','vergoeding_aangevraagd','vergoeding_ontvangen'];
+
+function propagateToevoegingNvt() {
+  // null treated as 0 — if a button was never set it counts as "no toevoeging"
+  const toevA = statusData.toevoeging_a ?? 0;
+  const toevB = statusData.toevoeging_b ?? 0;
+  if (toevA === 0 && toevB === 0) {
+    TOEV_COLS.forEach(col => saveStatusField(col, 'n.v.t.'));
+  } else if (toevA === 1 || toevB === 1) {
+    TOEV_COLS.forEach(col => { if (statusData[col] === 'n.v.t.') saveStatusField(col, null); });
+  }
+  refreshStatusAlarms();
+}
+
 function saveStatusField(key, value) {
   statusData[key] = value;
   refreshStatusAlarms();
@@ -419,7 +422,7 @@ const ALARM_CHECKS = {
   verstuurd_gemeente:     r => !r.verstuurd_gemeente && !!(r.akkoord_klanter && r.akkoord_klanter !== 'n.v.t.'),
   inschrijving_ontvangen: r => { if (r.inschrijving_ontvangen) return false; const days = parseInt(alarmSettings.reactie_inschrijving_gemeente) || 0; return !!days && deadlinePassed(r.verstuurd_gemeente, days); },
   beeindigd:              r => !r.beeindigd && (!!(r.inschrijving_ontvangen && r.inschrijving_ontvangen !== 'n.v.t.') || (isRechtbankNeeInfo() && !!(r.akkoord_klanten && r.akkoord_klanten !== 'n.v.t.'))),
-  vergoeding_aangevraagd: r => !r.vergoeding_aangevraagd && !!(r.beeindigd && r.beeindigd !== 'n.v.t.'),
+  vergoeding_aangevraagd: r => !r.vergoeding_aangevraagd && (r.kanban_column === 'gemeente' || r.kanban_column === 'afronding' || hasValue(r.verstuurd_gemeente) || hasValue(r.beeindigd)),
   vergoeding_ontvangen:   r => { if (r.vergoeding_ontvangen) return false; const days = parseInt(alarmSettings.reactie_vergoeding_rvr) || 0; return !!days && deadlinePassed(r.vergoeding_aangevraagd, days); },
   zoza_afgerond:          r => !r.zoza_afgerond && !!(r.beeindigd && r.beeindigd !== 'n.v.t.' && r.vergoeding_ontvangen),
 };
@@ -577,7 +580,6 @@ const KLANT_FIELDS = [
   { key: 'relatie',      label: 'Relatie' },
   { key: 'vorm',         label: 'Vorm' },
   { key: 'kinderen',     label: 'Kinderen' },
-  { key: 'toevoegingen', label: 'Toevoegingen' },
   { key: 'woning',       label: 'Woning' },
   { key: 'bedrijf',      label: 'Bedrijf' },
 ];
@@ -696,7 +698,7 @@ function renderForm() {
 
   // ── LEFT: Klantgegevens ──
   const leftCol = document.createElement('div');
-  leftCol.style.cssText = 'flex-shrink:0;width:400px;';
+  leftCol.style.cssText = 'flex-shrink:0;width:448px;';
 
   const klantSection = document.createElement('div');
   klantSection.className = 'section';
@@ -712,7 +714,7 @@ function renderForm() {
 
   const klantTable = document.createElement('table');
   klantTable.className = 'field-table';
-  klantTable.innerHTML = '<thead><tr><th style="width:25%">Veld</th><th style="width:75%;text-align:left;">Waarde</th></tr></thead>';
+  klantTable.innerHTML = '<thead><tr><th style="width:25%">Veld</th><th style="text-align:left;">Waarde</th><th style="text-align:center;width:1px;white-space:nowrap;padding:8px 4px;">Toevoegingen</th></tr></thead>';
   const klantTbody = document.createElement('tbody');
   const klant = infoData._klant || {};
   const inputStyle = 'width:100%;border:none;outline:none;font-family:"DM Mono",monospace;font-size:0.73rem;background:transparent;padding:0;color:var(--ink);';
@@ -851,20 +853,6 @@ function renderForm() {
         scheduleSave();
         renderForm();
       };
-    } else if (f.key === 'toevoegingen') {
-      control = document.createElement('select');
-      control.style.cssText = selectStyle;
-      ['', 'Geen', 'Enkele toevoeging', 'Dubbele toevoeging'].forEach(opt => {
-        const o = document.createElement('option');
-        o.value = opt; o.textContent = opt || '—';
-        if ((klant['toevoegingen'] || '') === opt) o.selected = true;
-        control.appendChild(o);
-      });
-      control.onchange = () => {
-        if (!infoData._klant) infoData._klant = {};
-        infoData._klant['toevoegingen'] = control.value;
-        scheduleSave();
-      };
     } else if (f.key === 'kinderen') {
       control = document.createElement('select');
       control.style.cssText = selectStyle;
@@ -896,6 +884,26 @@ function renderForm() {
     valTd.appendChild(control);
     tr.appendChild(labelTd);
     tr.appendChild(valTd);
+
+    const toevTd = document.createElement('td');
+    toevTd.style.cssText = 'text-align:center;width:1px;white-space:nowrap;padding:4px 4px;';
+    if (f.key === 'naam_a' || f.key === 'naam_b') {
+      const statusKey = f.key === 'naam_a' ? 'toevoeging_a' : 'toevoeging_b';
+      const toevBtn = document.createElement('button');
+      const updateToevBtn = () => {
+        const v = statusData[statusKey] === 1 ? 1 : 0;
+        toevBtn.className = 'toggle' + (v === 1 ? ' on' : '');
+        toevBtn.textContent = v === 1 ? '1' : '0';
+      };
+      updateToevBtn();
+      toevBtn.onclick = () => {
+        saveStatusField(statusKey, statusData[statusKey] === 1 ? 0 : 1);
+        updateToevBtn();
+        propagateToevoegingNvt();
+      };
+      toevTd.appendChild(toevBtn);
+    }
+    tr.appendChild(toevTd);
     klantTbody.appendChild(tr);
   });
 
